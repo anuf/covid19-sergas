@@ -323,7 +323,7 @@ app.layout = html.Div(children=[
     ]),
 
     html.Div(dcc.Graph(id='example-graph'), className='twelve columns'),
-    html.Div(dcc.Graph(id='example-graph0', figure=fig_mapa), className='six columns')
+    #html.Div(dcc.Graph(id='example-graph0', figure=fig_mapa), className='six columns')
 ])
 print("Time Total: {}".format(time.time()-tic1))
 
