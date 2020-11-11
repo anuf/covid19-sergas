@@ -31,7 +31,7 @@ server = app.server
 
 # download Galicia data from http://mapas.xunta.gal/centro-de-descargas
 tic1 = time.time()
-mapa = False
+mapa = True
 lga_gdf = gpd.read_file('./data/Concellos_IGN/Concellos_IGN.shp')  # load the data using Geopandas
 print("Time 1: {}".format(time.time()-tic1))
 ''' Data structure
@@ -110,19 +110,7 @@ fig = px.choropleth_mapbox(df,
                            center={"lat": 42.88052, "lon": -8.54569}  # centered in Santiago de Compostela
                            )
 print("TIC-8: {}".format(time.time()-tic1))
-if mapa:
-    fig2 = px.choropleth_mapbox(df,
-                                geojson=df_merged.geometry,
-                                locations='CP',  # df_merged.index,
-                                color='Área Sanitaria',  # df_merged['Total habitantes'],
-                                hover_name="Concello",
-                                # range_color
-                                # center={"lat": 40.71, "lon": -74.00},
-                                mapbox_style="carto-positron",  # mapbox_style="open-street-map"
-                                zoom=6,
-                                center={"lat": 42.88052, "lon": -8.54569}  # centered in Santiago de Compostela
-                                )
-print("TIC-9: {}".format(time.time()-tic1))
+
 SPREADSHEET_ID = '1RAQvyqBq3o9d0ELBxBgBfX20xmG3jBk4wtwxt3Xdkh8'
 RANGE_NAME = 'Datos xerais'
 
@@ -230,7 +218,7 @@ df_merged2['areacolor'] = df_merged2['areacolor'].map(dic_areas)
 
 
 if mapa:
-    fig4 = px.choropleth_mapbox(df,
+    fig_mapa = px.choropleth_mapbox(df,
                                 geojson=df_merged.geometry,
                                 locations='CP',  # df_merged.index,
                                 color='Área Sanitaria',  # df_merged['Total habitantes'],
@@ -335,7 +323,7 @@ app.layout = html.Div(children=[
     ]),
 
     html.Div(dcc.Graph(id='example-graph'), className='twelve columns'),
-    #html.Div(dcc.Graph(id='example-graph0', figure=fig4), className='six columns')
+    html.Div(dcc.Graph(id='example-graph0', figure=fig_mapa), className='six columns')
 ])
 print("Time Total: {}".format(time.time()-tic1))
 
