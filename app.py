@@ -31,7 +31,7 @@ server = app.server
 
 # download Galicia data from http://mapas.xunta.gal/centro-de-descargas
 tic1 = time.time()
-mapa = True
+mapa = False
 lga_gdf = gpd.read_file('./data/Concellos_IGN/Concellos_IGN.shp')  # load the data using Geopandas
 print("Time 1: {}".format(time.time()-tic1))
 ''' Data structure
