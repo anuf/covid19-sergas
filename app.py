@@ -194,7 +194,8 @@ df_diarios_extended = pd.concat([
     },
         axis=1)],
     axis=1)
-
+df_diarios_extended['Positivos PCR [%]'] = df_diarios_extended['Casos confirmados por PCR nas últimas 24 horas']/\
+                                           df_diarios_extended['Diff Probas PCR realizadas']*100
 
 df_diarios_extended['Date'] = [datetime.datetime.date(d) for d in df_diarios_extended['Data']]
 df_24h = df_diarios_extended.head(8)
@@ -243,7 +244,9 @@ app.layout = html.Div(children=[
     html.Div([
         html.P("Indicador:", className='two columns'),
         dcc.Dropdown(id='dropdown-parameter',
-                     options=[{'label': 'Casos confirmados por PCR nas últimas 24 horas',
+                     options=[{'label': 'Confirmados PCR / PCR realizadas [%]',
+                               'value': 'Positivos PCR [%]'},
+                              {'label': 'Casos confirmados por PCR nas últimas 24 horas',
                                'value': 'Casos confirmados por PCR nas últimas 24 horas'},
                               {'label': 'Hospitalizados hoxe',
                                'value': 'Hospitalizados hoxe'},
