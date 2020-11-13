@@ -258,14 +258,20 @@ app.layout = html.Div(children=[
                                'value': 'Probas PCR realizadas'},
                               {'label': 'Probas serolóxicas realizadas',
                                'value': 'Probas serolóxicas realizadas'},
+                              {'label': 'Coidados intensivos hoxe',
+                               'value': 'Coidados intensivos hoxe'},
                               {'label': 'Diff Probas PCR realizadas',
                                'value': 'Diff Probas PCR realizadas'},
                               {'label': 'Diff Probas serolóxicas realizadas',
                                'value': 'Diff Probas serolóxicas realizadas'},
-                              {'label': 'Coidados intensivos hoxe',
-                               'value': 'Coidados intensivos hoxe'}
+                              {'label': 'Diff Coidados intensivos hoxe',
+                               'value': 'Diff Coidados intensivos hoxe'},
+                              {'label': 'Diff Falecidos',
+                               'value': 'Diff Falecidos'},
+                              {'label': 'Diff Contaxiados',
+                               'value': 'Diff Contaxiados'}
                               ],
-                     value='Hospitalizados hoxe',
+                     value='Positivos PCR [%]',
                      clearable=False,
                      className='ten columns'
                      )],
