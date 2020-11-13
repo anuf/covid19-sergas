@@ -194,8 +194,8 @@ df_diarios_extended = pd.concat([
     },
         axis=1)],
     axis=1)
-df_diarios_extended['Positivos PCR [%]'] = df_diarios_extended['Casos confirmados por PCR nas últimas 24 horas']/\
-                                           df_diarios_extended['Diff Probas PCR realizadas']*100
+df_diarios_extended['Positivos PCR [%]'] = round(df_diarios_extended['Casos confirmados por PCR nas últimas 24 horas']/\
+                                           df_diarios_extended['Diff Probas PCR realizadas']*100, 2)
 
 df_diarios_extended['Date'] = [datetime.datetime.date(d) for d in df_diarios_extended['Data']]
 df_24h = df_diarios_extended.head(8)
