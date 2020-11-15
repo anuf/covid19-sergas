@@ -33,7 +33,7 @@ server = app.server
 tic1 = time.time()
 mapa = False
 lga_gdf = gpd.read_file('./data/Concellos_IGN/Concellos_IGN.shp')  # load the data using Geopandas
-print("Time 1: {}".format(time.time()-tic1))
+
 ''' Data structure
 INSPIREID       object  ES.IGN.SIGLIM34123636010
 COUNTRY         object  ES
@@ -60,14 +60,19 @@ geometry      geometry  MULTIPOLYGON (((521479.446 4723459.689, 521470...
 '''
 
 # data to join
-tic2 = time.time()
 orig_url = 'https://docs.google.com/spreadsheets/d/16uJAVv8PDcDpENwMo68m7hiJAcl39pfPDyjUesodHIo/edit?usp=sharing'
 dwn_url = orig_url.replace('edit?usp=sharing', 'export?format=csv')
+
+# df_7 = pd.read_csv('./data/map-alert-7/data-KBCIu_20201114.csv', dtype={"ID": str})
+# lga_gdf2 = lga_gdf.copy()
+# lga_gdf2[['NATCODE']] = lga_gdf2[['NATCODE']].apply(pd.to_numeric)
+# df_merged_ = pd.merge(lga_gdf2[['NATCODE', 'geometry']], df_7[['ID', 'Nivel', 'Nome', 'Detalle_Nivel']],
+#                       left_on='NATCODE', right_on='ID', how='left')
+# df_merged_.set_index('NATCODE')
 
 url = requests.get(dwn_url).text.encode('latin-1').decode('utf-8')
 csv_raw = StringIO(url)
 df = pd.read_csv(csv_raw, header=0, dtype={"CP": str})
-print("TIC2: {}".format(time.time()-tic2))
 
 df = df.dropna()
 df[['Total habitantes', 'Homes', 'Mulleres']] = df[['Total habitantes', 'Homes', 'Mulleres']].apply(pd.to_numeric)
@@ -79,7 +84,7 @@ df_merged = pd.merge(lga_gdf[['CODIGOINE', 'geometry']], df[['CP', 'Concello', '
 df_merged = df_merged.dropna(subset=['Total habitantes', 'geometry']).set_index('CODIGOINE')
 
 #df_merged.head(3)
-print("TIC-6: {}".format(time.time()-tic1))
+
 # fig, ax = plt.subplots(1,1, figsize=(20,20))
 # divider = make_axes_locatable(ax)
 # tmp = df_merged.copy()
@@ -95,7 +100,11 @@ print("TIC-6: {}".format(time.time()-tic1))
 # convert data to geojson
 df_merged = df_merged.to_crs(epsg=4326)  # convert the coordinate reference system to lat/long
 lga_json = df_merged.__geo_interface__  # convert to geoJSON
-print("TIC-7: {}".format(time.time()-tic1))
+
+#df_merged_ = df_merged_.to_crs(epsg=4326)  # convert the coordinate reference system to lat/long
+#lga_json_ = df_merged_.geometry.to_json()#__geo_interface__  # convert to geoJSON
+
+
 # Choropleth map using plotly.express and carto base map (no token needed)
 # With px.choropleth_mapbox, each row of the DataFrame is represented as a region of the choropleth.
 fig = px.choropleth_mapbox(df,
@@ -109,7 +118,6 @@ fig = px.choropleth_mapbox(df,
                            zoom=6,
                            center={"lat": 42.88052, "lon": -8.54569}  # centered in Santiago de Compostela
                            )
-print("TIC-8: {}".format(time.time()-tic1))
 
 SPREADSHEET_ID = '1RAQvyqBq3o9d0ELBxBgBfX20xmG3jBk4wtwxt3Xdkh8'
 RANGE_NAME = 'Datos xerais'
@@ -155,13 +163,9 @@ def gsheet2df(gsheet):
         df = pd.concat(all_data, axis=1)
         return df
 
-tic3 = time.time()
 gsheet = get_google_sheet(SPREADSHEET_ID, RANGE_NAME)
-print("TIC3: {}".format(time.time()-tic3))
-tic4 = time.time()
+
 df_diarios = gsheet2df(gsheet)
-print("TIC4: {}".format(time.time()-tic4))
-print("TIC5: {}".format(time.time()-tic1))
 
 df_diarios[['Pacientes con infección activa',
             'Hospitalizados hoxe', 'Coidados intensivos hoxe', 'Curados',
@@ -205,8 +209,7 @@ df_merged2 = pd.merge(df_diarios_extended[['Área Sanitaria', 'Casos confirmados
                       left_on='Área Sanitaria', right_on='Área Sanitaria', how='left')
 
 df_merged2['areacolor'] = df_merged2['Área Sanitaria']
-print(set(df_merged2['Área Sanitaria']))
-print(set(df['Área Sanitaria']))
+
 dic_areas = {'Galicia': 0,
              'A Coruña': 1,
              'Lugo': 2,
@@ -219,17 +222,34 @@ df_merged2['areacolor'] = df_merged2['areacolor'].map(dic_areas)
 
 
 if mapa:
-    fig_mapa = px.choropleth_mapbox(df,
-                                geojson=df_merged.geometry,
-                                locations='CP',  # df_merged.index,
-                                color='Área Sanitaria',  # df_merged['Total habitantes'],
-                                hover_name="Concello",
-                                # range_color
-                                # center={"lat": 40.71, "lon": -74.00},
-                                mapbox_style="carto-positron",  # mapbox_style="open-street-map"
-                                zoom=6,
-                                center={"lat": 42.88052, "lon": -8.54569}  # centered in Santiago de Compostela
-    )
+    print("mapa")
+    # fig_mapa = px.choropleth_mapbox(df,
+    #                             geojson=df_merged.geometry,
+    #                             locations='CP',  # df_merged.index,
+    #                             color='Área Sanitaria',  # df_merged['Total habitantes'],
+    #                             hover_name="Concello",
+    #                             # range_color
+    #                             # center={"lat": 40.71, "lon": -74.00},
+    #                             mapbox_style="carto-positron",  # mapbox_style="open-street-map"
+    #                             zoom=6,
+    #                             center={"lat": 42.88052, "lon": -8.54569}  # centered in Santiago de Compostela
+    # )
+
+
+
+    # df_merged_['Nivel'] = df_merged_['Nivel'].apply(lambda _: str(_))
+    # fig_mapa_ = px.choropleth_mapbox(df_merged_,
+    #                                  geojson=lga_json_,#df_merged_.geometry,
+    #                                  locations='NATCODE',#df_merged_.index, #'ID',  # df_merged.index,
+    #                                  color='Nivel',
+    #                                  hover_name='Nome',
+    #                                  hover_data={'Detalle_Nivel':True, 'Nivel': False},
+    #                                 # range_color
+    #                                 # center={"lat": 40.71, "lon": -74.00},
+    #                                 mapbox_style="carto-positron",  # mapbox_style="open-street-map"
+    #                                 zoom=6,
+    #                                 center={"lat": 42.88052, "lon": -8.54569}  # centered in Santiago de Compostela
+    #                                 )
 
 x = datetime.datetime.now().date() - datetime.timedelta(8)
 
@@ -246,6 +266,8 @@ app.layout = html.Div(children=[
         dcc.Dropdown(id='dropdown-parameter',
                      options=[{'label': 'Confirmados PCR / PCR realizadas [%]',
                                'value': 'Positivos PCR [%]'},
+                              {'label': 'Pacientes con infección activa',
+                               'value': 'Pacientes con infección activa'},
                               {'label': 'Casos confirmados por PCR nas últimas 24 horas',
                                'value': 'Casos confirmados por PCR nas últimas 24 horas'},
                               {'label': 'Hospitalizados hoxe',
@@ -260,6 +282,8 @@ app.layout = html.Div(children=[
                                'value': 'Probas serolóxicas realizadas'},
                               {'label': 'Coidados intensivos hoxe',
                                'value': 'Coidados intensivos hoxe'},
+                              {'label': 'Diferenza de pacientes con infección activa con respecto ao día anterior',
+                               'value': 'Diff Pacientes con infección activa'},
                               {'label': 'Diferenza de probas PCR realizadas con respecto ao día anterior',
                                'value': 'Diff Probas PCR realizadas'},
                               {'label': 'Diferenza de probas serolóxicas realizadas con respecto ao día anterior',
@@ -267,7 +291,9 @@ app.layout = html.Div(children=[
                               {'label': 'Diferenza de pacentes en coidados intensivos con respecto ao día anterior',
                                'value': 'Diff Coidados intensivos hoxe'},
                               {'label': 'Diferenza de falecidos con respecto ao día anterior',
-                               'value': 'Diff Falecidos'}
+                               'value': 'Diff Falecidos'},
+                              {'label': 'Diferenza de contaxiados con respecto ao día anterior',
+                               'value': 'Diff Contaxiados'}
                               ],
                      value='Positivos PCR [%]',
                      clearable=False,
@@ -329,13 +355,15 @@ app.layout = html.Div(children=[
             className='ten columns'),
     ]),
 
-    html.Div(dcc.Graph(id='example-graph'), className='twelve columns'),
-    #html.Div(dcc.Graph(id='example-graph0', figure=fig_mapa), className='six columns')
+    html.Div(dcc.Graph(id='example-graph'), className='twelve columns')
+    #html.Div(dcc.Graph(id='example-graph0', figure=fig_mapa_), className='six columns')
 ])
 print("Time Total: {}".format(time.time()-tic1))
 
 @app.callback(
-    Output('example-graph', 'figure'),
+    [Output('example-graph', 'figure')#,
+     #Output('diff-graph', 'figure')
+    ],
     [Input('dropdown-parameter', 'value'),
      Input('date-picker', 'start_date'), Input('date-picker', 'end_date'),
      Input('radio-buttons', 'value'),
@@ -343,6 +371,7 @@ print("Time Total: {}".format(time.time()-tic1))
      ])
 def update_figure(dd_parameter, start_date, end_date, rb_value, dd_area):
     print(df_diarios_extended.columns)
+    print(dd_parameter)
     s_date = datetime.datetime.strptime(start_date, '%Y-%m-%d').date()  # datetime.date().fromisoformat(start_date)
     e_date = datetime.datetime.strptime(end_date, '%Y-%m-%d').date()  # datetime.date().fromisoformat(start_date)
 
@@ -366,7 +395,7 @@ def update_figure(dd_parameter, start_date, end_date, rb_value, dd_area):
     )
     fig_to_update.update_layout(title_x=0.5, yaxis={'title': ''})
 
-    return fig_to_update
+    return fig_to_update,
 
 
 if __name__ == '__main__':
