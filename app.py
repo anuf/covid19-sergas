@@ -260,6 +260,8 @@ e_date = max(df_filtered['Date'])
 s_date = e_date - datetime.timedelta(1)
 
 app.layout = html.Div(children=[
+    html.Img(src=app.get_asset_url('iconfinder-coronavirus-microscope-virus-laboratory-64.png'),
+             className='one columns'),
     html.H1('Datos Coronavirus Sergas'),
     html.Div([
         html.P("Indicador:", className='two columns'),
