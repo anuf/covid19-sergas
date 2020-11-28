@@ -1,263 +1,105 @@
-# -*- coding: utf-8 -*-
-from apiclient.discovery import build
-from httplib2 import Http
-from oauth2client import file, client, tools
-
-import os
-
-import geopandas as gpd
 import pandas as pd
 import requests
-from io import StringIO
+import io
+import json
+import sys
+import numpy as np
 
 import plotly.express as px
+import plotly.graph_objects as go
 
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
-from dash.dependencies import Input, Output
-
+import dash_table
 import datetime
-import time
-import sys
+from dash.dependencies import Input, Output
 
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
+app.config['suppress_callback_exceptions'] = True
 
 server = app.server
 
-# Create a GeoJSON for maps outside US
 
-# download Galicia data from http://mapas.xunta.gal/centro-de-descargas
-tic1 = time.time()
-mapa = False
-lga_gdf = gpd.read_file('./data/Concellos_IGN/Concellos_IGN.shp')  # load the data using Geopandas
+url = 'https://coronavirus.sergas.gal/datos/libs/hot-config/hot-config.txt'
 
-''' Data structure
-INSPIREID       object  ES.IGN.SIGLIM34123636010
-COUNTRY         object  ES
-NATLEV          object  https://inspire.ec.europa.eu/codelist/Administ
-NATLEVNAME      object  Municipio
-NATCODE         object  34123636010
-NAMEUNIT        object  Catoira
-CODNUT1         object  ES1
-CODNUT2         object  ES11
-CODNUT3         object  ES114
-NomeConcel      object  Catoira
-CodCONC        float64  36010.0
-Concello        object  Catoira
-CodCOM         float64  45.0
-CodPROV        float64  36.0
-NomeCapita      object  Catoira
-Comarca         object  Caldas
-Provincia       object  Pontevedra
-CODIGOINE       object  36010
-NomeMAY         object  CATOIRA
-Shape_Leng     float64  24670.212288
-Shape_Area     float64  2.927458e+07
-geometry      geometry  MULTIPOLYGON (((521479.446 4723459.689, 521470...
-'''
+s = requests.get(url).content
+j = json.loads(s)
+for a_source in j['DATA_SOURCE']['FILES']:
+    print(a_source['URL'])
 
-# data to join
-orig_url = 'https://docs.google.com/spreadsheets/d/16uJAVv8PDcDpENwMo68m7hiJAcl39pfPDyjUesodHIo/edit?usp=sharing'
-dwn_url = orig_url.replace('edit?usp=sharing', 'export?format=csv')
+# xenero_url = "https://coronavirus.sergas.gal/infodatos/2020-11-26_COVID19_Web_PorcentajeInfectadosPorGenero.csv"
+# s_xenero = requests.get(xenero_url).content
+#
+# df_xenero = pd.read_csv(io.StringIO(s_xenero.decode('utf-8')))
+# print(df_xenero.columns)
+# print(df_xenero)
 
-# df_7 = pd.read_csv('./data/map-alert-7/data-KBCIu_20201114.csv', dtype={"ID": str})
-# lga_gdf2 = lga_gdf.copy()
-# lga_gdf2[['NATCODE']] = lga_gdf2[['NATCODE']].apply(pd.to_numeric)
-# df_merged_ = pd.merge(lga_gdf2[['NATCODE', 'geometry']], df_7[['ID', 'Nivel', 'Nome', 'Detalle_Nivel']],
-#                       left_on='NATCODE', right_on='ID', how='left')
-# df_merged_.set_index('NATCODE')
+df_totais = pd.DataFrame()
+yesterday = datetime.date.today()-datetime.timedelta(1)
 
-url = requests.get(dwn_url).text.encode('latin-1').decode('utf-8')
-csv_raw = StringIO(url)
-df = pd.read_csv(csv_raw, header=0, dtype={"CP": str})
+for day in pd.date_range(start='2020-10-07', end=yesterday):
+    totais_url = f"https://coronavirus.sergas.gal/infodatos/{str(day).split()[0]}_COVID19_Web_CifrasTotais.csv"
+    #print(totais_url)
+    s_totais = requests.get(totais_url).content
+    df_diario = pd.read_csv(io.StringIO(s_totais.decode('utf-8')), thousands='.', decimal=',')
+    df_totais = pd.concat([df_totais, df_diario], ignore_index=True)
 
-df = df.dropna()
-df[['Total habitantes', 'Homes', 'Mulleres']] = df[['Total habitantes', 'Homes', 'Mulleres']].apply(pd.to_numeric)
+df_totais[['Casos_Totais',
+           'Casos_Confirmados_PCR_Ultimas24h',
+           'Pacientes_Sin_Alta',
+           'Pacientes_Con_Alta',
+           'Camas_Ocupadas_HOS',
+           'Camas_Ocupadas_UCI',
+           'Probas_Realizadas_PCR',
+           'Probas_Realizadas_Non_PCR',
+           'Exitus']] = \
+    df_totais[['Casos_Totais',
+               'Casos_Confirmados_PCR_Ultimas24h',
+               'Pacientes_Sin_Alta',
+               'Pacientes_Con_Alta',
+               'Camas_Ocupadas_HOS',
+               'Camas_Ocupadas_UCI',
+               'Probas_Realizadas_PCR',
+               'Probas_Realizadas_Non_PCR',
+               'Exitus']].apply(pd.to_numeric)
+df_totais[['Fecha']] = df_totais[['Fecha']].apply(pd.to_datetime)
 
-# merge data and geo-spatial data
+# change axis for better repreentation
 
-df_merged = pd.merge(lga_gdf[['CODIGOINE', 'geometry']], df[['CP', 'Concello', 'Total habitantes']],
-                     left_on='CODIGOINE', right_on='CP', how='left')
-df_merged = df_merged.dropna(subset=['Total habitantes', 'geometry']).set_index('CODIGOINE')
+df_totais.set_axis(['Fecha',
+                    'Área Sanitaria',
+                    'Contaxiados',
+                    'Casos confirmados por PCR nas últimas 24 horas',
+                    'Pacientes con infección activa',
+                    'Curados',
+                    'Hospitalizados hoxe',
+                    'Coidados intensivos hoxe',
+                    'Probas PCR realizadas',
+                    'Probas serolóxicas realizadas',
+                    'Falecidos'], axis=1, inplace=True)
 
-#df_merged.head(3)
+df_totais['Data'] = pd.to_datetime(df_totais['Fecha']).dt.date
 
-# fig, ax = plt.subplots(1,1, figsize=(20,20))
-# divider = make_axes_locatable(ax)
-# tmp = df_merged.copy()
-# #tmp['Total habitantes'] = tmp['Total habitantes']*100 #To display percentages
-# cax = divider.append_axes("right", size="3%", pad=-1) #resize the colorbar
-# tmp.plot(column='Total habitantes', ax=ax,cax=cax,  legend=True,
-#          legend_kwds={'label': "Total habitantes"})
-# tmp.geometry.boundary.plot(color='#BABABA', ax=ax, linewidth=0.3) #Add some borders to the geometries
-# ax.axis('off')
-# fig.show()
-
-
-# convert data to geojson
-df_merged = df_merged.to_crs(epsg=4326)  # convert the coordinate reference system to lat/long
-lga_json = df_merged.__geo_interface__  # convert to geoJSON
-
-#df_merged_ = df_merged_.to_crs(epsg=4326)  # convert the coordinate reference system to lat/long
-#lga_json_ = df_merged_.geometry.to_json()#__geo_interface__  # convert to geoJSON
-
-
-# Choropleth map using plotly.express and carto base map (no token needed)
-# With px.choropleth_mapbox, each row of the DataFrame is represented as a region of the choropleth.
-fig = px.choropleth_mapbox(df,
-                           geojson=df_merged.geometry,
-                           locations='CP',  # df_merged.index,
-                           color='Total habitantes',  # df_merged['Total habitantes'],
-                           hover_name="Concello",
-                           # range_color
-                           # center={"lat": 40.71, "lon": -74.00},
-                           mapbox_style="carto-positron",  # mapbox_style="open-street-map"
-                           zoom=6,
-                           center={"lat": 42.88052, "lon": -8.54569}  # centered in Santiago de Compostela
-                           )
-
-SPREADSHEET_ID = '1RAQvyqBq3o9d0ELBxBgBfX20xmG3jBk4wtwxt3Xdkh8'
-RANGE_NAME = 'Datos xerais'
-
-
-def get_google_sheet(spreadsheet_id, range_name):
-    """ Retrieve sheet data using OAuth credentials and Google Python API. """
-    scopes = 'https://www.googleapis.com/auth/spreadsheets.readonly'
-    # Setup the Sheets API
-    store = file.Storage('credentials.json')
-    creds = store.get()
-    if not creds or creds.invalid:
-        flow = client.flow_from_clientsecrets('./client_secret.json', scopes)
-        creds = tools.run_flow(flow, store)
-    service = build('sheets', 'v4', http=creds.authorize(Http()))
-
-    # Call the Sheets API
-    g_sheet = service.spreadsheets().values().get(spreadsheetId=spreadsheet_id, range=range_name).execute()
-    return g_sheet
-
-
-def gsheet2df(gsheet):
-    """ Converts Google sheet data to a Pandas DataFrame.
-    Note: This script assumes that your data contains a header file on the first row!
-
-    Also note that the Google API returns 'none' from empty cells - in order for the code
-    below to work, you'll need to make sure your sheet doesn't contain empty cells,
-    or update the code to account for such instances.
-
-    """
-    header = gsheet.get('values', [])[0]   # Assumes first line is header!
-    values = gsheet.get('values', [])[1:]  # Everything else is data.
-    if not values:
-        print('No data found.')
-    else:
-        all_data = []
-        for col_id, col_name in enumerate(header):
-            column_data = []
-            for row in values:
-                column_data.append(row[col_id])
-            ds = pd.Series(data=column_data, name=col_name)
-            all_data.append(ds)
-        df = pd.concat(all_data, axis=1)
-        return df
-
-gsheet = get_google_sheet(SPREADSHEET_ID, RANGE_NAME)
-
-df_diarios = gsheet2df(gsheet)
-
-df_diarios[['Pacientes con infección activa',
-            'Hospitalizados hoxe', 'Coidados intensivos hoxe', 'Curados',
-            'Falecidos', 'Contaxiados',
-            'Casos confirmados por PCR nas últimas 24 horas',
-            'Probas PCR realizadas', 'Probas serolóxicas realizadas']] = \
-    df_diarios[['Pacientes con infección activa',
-                'Hospitalizados hoxe', 'Coidados intensivos hoxe', 'Curados',
-                'Falecidos', 'Contaxiados',
-                'Casos confirmados por PCR nas últimas 24 horas',
-                'Probas PCR realizadas', 'Probas serolóxicas realizadas']].apply(pd.to_numeric)
-df_diarios[['Data']] = df_diarios[['Data']].apply(pd.to_datetime)
-
-df_diarios_extended = pd.concat([
-    df_diarios, df_diarios[
-        ['Pacientes con infección activa',
-         'Hospitalizados hoxe', 'Coidados intensivos hoxe', 'Curados',
-         'Falecidos', 'Contaxiados', 'Casos confirmados por PCR nas últimas 24 horas',
-         'Probas PCR realizadas', 'Probas serolóxicas realizadas']
-    ].diff(periods=-8).rename({
-        'Pacientes con infección activa': 'Diff Pacientes con infección activa',
-        'Hospitalizados hoxe': 'Diff Hospitalizados hoxe',
-        'Coidados intensivos hoxe': 'Diff Coidados intensivos hoxe',
-        'Curados': 'Diff Curados',
-        'Falecidos': 'Diff Falecidos',
-        'Contaxiados': 'Diff Contaxiados',
+df_totais_extended = pd.concat([
+    df_totais, df_totais[
+        ['Casos confirmados por PCR nas últimas 24 horas',
+         'Falecidos',
+         'Probas PCR realizadas']
+    ].diff(periods=8).rename({
         'Casos confirmados por PCR nas últimas 24 horas': 'Diff Casos confirmados por PCR nas últimas 24 horas',
-        'Probas PCR realizadas': 'Diff Probas PCR realizadas',
-        'Probas serolóxicas realizadas': 'Diff Probas serolóxicas realizadas'
+        'Falecidos': 'Diff Falecidos',
+        'Probas PCR realizadas': 'Diff Probas PCR realizadas'
     },
         axis=1)],
     axis=1)
-df_diarios_extended['Positivos PCR [%]'] = round(df_diarios_extended['Casos confirmados por PCR nas últimas 24 horas']/\
-                                           df_diarios_extended['Diff Probas PCR realizadas']*100, 2)
 
-df_diarios_extended['Date'] = [datetime.datetime.date(d) for d in df_diarios_extended['Data']]
-df_24h = df_diarios_extended.head(8)
+df_mean = df_totais_extended.groupby('Área Sanitaria')['Casos confirmados por PCR nas últimas 24 horas'].rolling(window=7).mean()
 
-df_merged2 = pd.merge(df_diarios_extended[['Área Sanitaria', 'Casos confirmados por PCR nas últimas 24 horas']],
-                      df[['CP', 'Concello', 'Total habitantes', 'Homes', 'Mulleres', 'Área Sanitaria']],
-                      left_on='Área Sanitaria', right_on='Área Sanitaria', how='left')
-
-df_merged2['areacolor'] = df_merged2['Área Sanitaria']
-
-dic_areas = {'Galicia': 0,
-             'A Coruña': 1,
-             'Lugo': 2,
-             'Ourense': 3,
-             'Pontevedra': 4,
-             'Vigo': 5,
-             'Santiago': 6,
-             'Ferrol': 7}
-df_merged2['areacolor'] = df_merged2['areacolor'].map(dic_areas)
-
-
-if mapa:
-    print("mapa")
-    # fig_mapa = px.choropleth_mapbox(df,
-    #                             geojson=df_merged.geometry,
-    #                             locations='CP',  # df_merged.index,
-    #                             color='Área Sanitaria',  # df_merged['Total habitantes'],
-    #                             hover_name="Concello",
-    #                             # range_color
-    #                             # center={"lat": 40.71, "lon": -74.00},
-    #                             mapbox_style="carto-positron",  # mapbox_style="open-street-map"
-    #                             zoom=6,
-    #                             center={"lat": 42.88052, "lon": -8.54569}  # centered in Santiago de Compostela
-    # )
-
-
-
-    # df_merged_['Nivel'] = df_merged_['Nivel'].apply(lambda _: str(_))
-    # fig_mapa_ = px.choropleth_mapbox(df_merged_,
-    #                                  geojson=lga_json_,#df_merged_.geometry,
-    #                                  locations='NATCODE',#df_merged_.index, #'ID',  # df_merged.index,
-    #                                  color='Nivel',
-    #                                  hover_name='Nome',
-    #                                  hover_data={'Detalle_Nivel':True, 'Nivel': False},
-    #                                 # range_color
-    #                                 # center={"lat": 40.71, "lon": -74.00},
-    #                                 mapbox_style="carto-positron",  # mapbox_style="open-street-map"
-    #                                 zoom=6,
-    #                                 center={"lat": 42.88052, "lon": -8.54569}  # centered in Santiago de Compostela
-    #                                 )
-
-x = datetime.datetime.now().date() - datetime.timedelta(8)
-
-df_filtered = df_diarios_extended[df_diarios_extended["Date"] >= datetime.datetime.now().date() - datetime.timedelta(7)]
-print("MinMAX {} {}".format(min(df_diarios_extended["Date"]), max(df_diarios_extended["Date"])))
-
-e_date = max(df_filtered['Date'])
-s_date = e_date - datetime.timedelta(1)
+e_date = max(df_totais['Data'])
+s_date = e_date - datetime.timedelta(6)
 
 app.layout = html.Div(children=[
     html.Img(src=app.get_asset_url('iconfinder-coronavirus-microscope-virus-laboratory-64.png'),
@@ -266,38 +108,33 @@ app.layout = html.Div(children=[
     html.Div([
         html.P("Indicador:", className='two columns'),
         dcc.Dropdown(id='dropdown-parameter',
-                     options=[{'label': 'Confirmados PCR / PCR realizadas [%]',
-                               'value': 'Positivos PCR [%]'},
-                              {'label': 'Pacientes con infección activa',
-                               'value': 'Pacientes con infección activa'},
-                              {'label': 'Casos confirmados por PCR nas últimas 24 horas',
-                               'value': 'Casos confirmados por PCR nas últimas 24 horas'},
-                              {'label': 'Hospitalizados hoxe',
-                               'value': 'Hospitalizados hoxe'},
-                              {'label': 'Falecidos',
-                               'value': 'Falecidos'},
-                              {'label': 'Contaxiados',
-                               'value': 'Contaxiados'},
-                              {'label': 'Probas PCR realizadas',
-                               'value': 'Probas PCR realizadas'},
-                              {'label': 'Probas serolóxicas realizadas',
-                               'value': 'Probas serolóxicas realizadas'},
-                              {'label': 'Coidados intensivos hoxe',
-                               'value': 'Coidados intensivos hoxe'},
-                              {'label': 'Diferenza de pacientes con infección activa con respecto ao día anterior',
-                               'value': 'Diff Pacientes con infección activa'},
-                              {'label': 'Diferenza de probas PCR realizadas con respecto ao día anterior',
-                               'value': 'Diff Probas PCR realizadas'},
-                              {'label': 'Diferenza de probas serolóxicas realizadas con respecto ao día anterior',
-                               'value': 'Diff Probas serolóxicas realizadas'},
-                              {'label': 'Diferenza de pacentes en coidados intensivos con respecto ao día anterior',
-                               'value': 'Diff Coidados intensivos hoxe'},
-                              {'label': 'Diferenza de falecidos con respecto ao día anterior',
-                               'value': 'Diff Falecidos'},
-                              {'label': 'Diferenza de contaxiados con respecto ao día anterior',
-                               'value': 'Diff Contaxiados'}
-                              ],
-                     value='Positivos PCR [%]',
+                     options=[
+                         {'label': 'Pacientes con infección activa',
+                          'value': 'Pacientes con infección activa'},
+                         {'label': 'Casos confirmados por PCR nas últimas 24 horas',
+                          'value': 'Casos confirmados por PCR nas últimas 24 horas'},
+                         {'label': 'Hospitalizados hoxe',
+                          'value': 'Hospitalizados hoxe'},
+                         {'label': 'Falecidos',
+                          'value': 'Falecidos'},
+                         {'label': 'Contaxiados',
+                          'value': 'Contaxiados'},
+                         {'label': 'Curados',
+                          'value': 'Curados'},
+                         {'label': 'Probas PCR realizadas',
+                          'value': 'Probas PCR realizadas'},
+                         {'label': 'Probas serolóxicas realizadas',
+                          'value': 'Probas serolóxicas realizadas'},
+                         {'label': 'Coidados intensivos hoxe',
+                          'value': 'Coidados intensivos hoxe'},
+                         {'label': 'Diferenza de casos confirmados por PCR nas últimas 24 horas',
+                          'value': 'Diff Casos confirmados por PCR nas últimas 24 horas'},
+                         {'label': 'Diferenza de probas PCR realizadas con respecto ao día anterior',
+                          'value': 'Diff Probas PCR realizadas'},
+                         {'label': 'Diferenza de falecidos con respecto ao día anterior',
+                          'value': 'Diff Falecidos'}
+                     ],
+                     value='Casos confirmados por PCR nas últimas 24 horas',
                      clearable=False,
                      className='ten columns'
                      )],
@@ -309,37 +146,39 @@ app.layout = html.Div(children=[
             start_date=s_date,
             end_date=e_date,
             display_format='D-M-Y',
-            className='ten columns'
+            className='ten columns',
+            first_day_of_week=1,
+            min_date_allowed='2020-10-07'
         )
     ]),
     html.Div([
         html.P("Área Sanitaria:", className='two columns'),
         dcc.Dropdown(id='dropdown-area',
                      options=[{'label': 'Galicia',
-                               'value': 'Galicia'},
+                               'value': 'GALICIA'},
                               {'label': 'A Coruña',
-                               'value': 'A Coruña'},
+                               'value': 'A.S. A CORUÑA E CEE'},
                               {'label': 'Lugo',
-                               'value': 'Lugo'},
+                               'value': 'A.S. LUGO, A MARIÑA E MONFORTE'},
                               {'label': 'Ourense',
-                               'value': 'Ourense'},
+                               'value': 'A.S. OURENSE, VERÍN E O BARCO'},
                               {'label': 'Pontevedra',
-                               'value': 'Pontevedra'},
+                               'value': 'A.S. PONTEVEDRA E O SALNÉS'},
                               {'label': 'Vigo',
-                               'value': 'Vigo'},
+                               'value': 'A.S. VIGO'},
                               {'label': 'Santiago',
-                               'value': 'Santiago'},
+                               'value': 'A.S. SANTIAGO E BARBANZA'},
                               {'label': 'Ferrol',
-                               'value': 'Ferrol'}
+                               'value': 'A.S. FERROL'}
                               ],
-                     value=['Galicia',
-                            'A Coruña',
-                            'Lugo',
-                            'Ourense',
-                            'Pontevedra',
-                            'Vigo',
-                            'Santiago',
-                            'Ferrol'],
+                     value=['GALICIA',
+                            'A.S. A CORUÑA E CEE',
+                            'A.S. LUGO, A MARIÑA E MONFORTE',
+                            'A.S. OURENSE, VERÍN E O BARCO',
+                            'A.S. PONTEVEDRA E O SALNÉS',
+                            'A.S. VIGO',
+                            'A.S. SANTIAGO E BARBANZA',
+                            'A.S. FERROL'],
                      multi=True,
                      clearable=False,
                      className='ten columns')
@@ -352,54 +191,61 @@ app.layout = html.Div(children=[
                 {'label': 'Agrupado', 'value': 'group'},
                 {'label': 'Apilado', 'value': 'stack'}
             ],
-            value='stack',
+            value='group',
             labelStyle={'display': 'inline-block'},
             className='ten columns'),
     ]),
 
-    html.Div(dcc.Graph(id='example-graph'), className='twelve columns')
-    #html.Div(dcc.Graph(id='example-graph0', figure=fig_mapa_), className='six columns')
+    html.Div(dcc.Graph(id='main-graph'), className='twelve columns')
 ])
-print("Time Total: {}".format(time.time()-tic1))
+
 
 @app.callback(
-    [Output('example-graph', 'figure')#,
-     #Output('diff-graph', 'figure')
-    ],
+    [Output('main-graph', 'figure')],
     [Input('dropdown-parameter', 'value'),
      Input('date-picker', 'start_date'), Input('date-picker', 'end_date'),
      Input('radio-buttons', 'value'),
      Input('dropdown-area', 'value')
      ])
 def update_figure(dd_parameter, start_date, end_date, rb_value, dd_area):
-    print(df_diarios_extended.columns)
-    print(dd_parameter)
-    s_date = datetime.datetime.strptime(start_date, '%Y-%m-%d').date()  # datetime.date().fromisoformat(start_date)
-    e_date = datetime.datetime.strptime(end_date, '%Y-%m-%d').date()  # datetime.date().fromisoformat(start_date)
+    if len(dd_area) > 0:
+        s_date = datetime.datetime.strptime(start_date, '%Y-%m-%d').date()
+        e_date = datetime.datetime.strptime(end_date, '%Y-%m-%d').date()  # datetime.date().fromisoformat(start_date)
 
-    df_to_figure = df_diarios_extended[df_diarios_extended.Date.between(s_date, e_date)]
+        df_to_figure = df_totais_extended[df_totais_extended.Data.between(s_date, e_date)]
 
-    df_to_figure = df_to_figure[df_to_figure['Área Sanitaria'].isin(dd_area)]
+        df_to_figure = df_to_figure[df_to_figure['Área Sanitaria'].isin(dd_area)]
 
-    fig_to_update = px.bar(df_to_figure,
-                           x='Date',
-                           y=dd_parameter,
-                           text=dd_parameter,
-                           title=dd_parameter,
-                           barmode=rb_value,
-                           color="Área Sanitaria")
+        fig_to_update = px.bar(df_to_figure,
+                               x='Data',
+                               y=dd_parameter,
+                               text=dd_parameter,
+                               title=dd_parameter,
+                               barmode=rb_value,
+                               color="Área Sanitaria")
 
-    fig_to_update.update_xaxes(
-        dtick=86400000.0,
-        tickformat="%d %b",
-        ticklabelmode="instant",
-        title_text='Data'
-    )
-    fig_to_update.update_layout(title_x=0.5, yaxis={'title': ''})
+        fig_to_update.update_xaxes(
+            dtick=86400000.0,
+            tickformat="%d %b",
+            ticklabelmode="instant",
+            title_text='Data'
+        )
+        fig_to_update.update_layout(title_x=0.5, yaxis={'title': ''})
+
+        # fig_to_update = go.Figure()
+        # fig_to_update.add_trace(go.Scatter(x=df_to_figure['Data'],
+        #                                    y=df_to_figure[dd_parameter],
+        #                                    mode='lines',
+        #                                    name='lines'))
+        # fig_to_update.add_trace(go.Bar(x=df_to_figure['Data'],
+        #                                y=df_to_figure[dd_parameter],
+        #                                name=dd_parameter))
+
+    else:
+        fig_to_update = {}
 
     return fig_to_update,
 
 
 if __name__ == '__main__':
     app.run_server(debug=True)
-
