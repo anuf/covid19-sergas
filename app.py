@@ -17,7 +17,9 @@ from dash.dependencies import Input, Output
 
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
-app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
+app = dash.Dash(__name__,
+                title='Datos COVID19',
+                external_stylesheets=external_stylesheets)
 app.config['suppress_callback_exceptions'] = True
 
 server = app.server
@@ -104,6 +106,7 @@ df_totais_extended['Media 14 días'] = df_totais_extended.groupby('Área Sanitar
 
 e_date = max(df_totais['Data'])
 s_date = e_date - datetime.timedelta(6)
+ano = datetime.date.today().year
 
 app.layout = html.Div(children=[
     html.Img(src=app.get_asset_url('iconfinder-coronavirus-microscope-virus-laboratory-64.png'),
@@ -201,10 +204,16 @@ app.layout = html.Div(children=[
             labelStyle={'display': 'inline-block'},
             className='ten columns'),
     ]),
-
     html.Div(dcc.Graph(id='main-graph'), className='twelve columns'),
     html.Div(dcc.Graph(id='mean7-graph'), className='twelve columns'),
-    html.Div(dcc.Graph(id='mean14-graph'), className='twelve columns')
+    html.Div(dcc.Graph(id='mean14-graph'), className='twelve columns'),
+    html.Div(children=[dcc.Markdown(# markdown
+                   f"{ano} [anuf](https://github.com/anuf)  Todos os dereitos garantidos.")],
+        style={'textAlign'# : 'center',
+               'background': 'black',
+               'textColor': 'white'},
+        className='twelve columns'
+    )
 ])
 
 
@@ -288,6 +297,7 @@ def update_figure(dd_parameter, start_date, end_date, rb_value, dd_area):
         fig_mean14_to_update.update_layout(title_x=0.5, yaxis={'title': ''})
     else:
         fig_mean7_to_update = {}
+        fig_mean14_to_update = {}
     return fig_to_update, fig_mean7_to_update, fig_mean14_to_update
 
 
