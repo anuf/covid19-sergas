@@ -98,34 +98,9 @@ df_totais_extended = pd.concat([
         axis=1)],
     axis=1)
 
-
-# mean_col_ = df_totais_extended.groupby('Área Sanitaria')['Casos confirmados por PCR nas últimas 24 horas'].rolling(window=7).mean()
-# cols = ['date','name','id','dept','sale1','sale2','sale3','total_sale']
-# data = [
-# ['1/1/17', 'John', 50, 'Sales', 50.0, 60.0, 70.0, 180.0],
-# ['1/1/17', 'Mike', 21, 'Engg', 43.0, 55.0, 2.0, 100.0],
-# ['1/1/17', 'Jane', 99, 'Tech', 90.0, 80.0, 70.0, 240.0],
-# ['1/2/17', 'John', 50, 'Sales', 60.0, 70.0, 80.0, 210.0],
-# ['1/2/17', 'Mike', 21, 'Engg', 53.0, 65.0, 12.0, 130.0],
-# ['1/2/17', 'Jane', 99, 'Tech', 100.0, 90.0, 80.0, 270.0],
-# ['1/3/17', 'John', 50, 'Sales', 40.0, 50.0, 60.0, 150.0],
-# ['1/3/17', 'Mike', 21, 'Engg', 53.0, 55.0, 12.0, 120.0],
-# ['1/3/17', 'Jane', 99, 'Tech', 80.0, 70.0, 60.0, 210.0]
-# ]
-# df = pd.DataFrame(data, columns=cols)
-# mean_col = df.groupby(['name', 'id', 'dept'])['total_sale'].mean() # don't reset the index!
-# print(mean_col.index)
-# print(mean_col_.index)
-#print(df_totais_extended.head(3))
-
-#sys.exit(1)
-# fig_mean = px.bar(df_mean,
-#                                x='Data',
-#                                y=dd_parameter,
-#                                text=dd_parameter,
-#                                title=dd_parameter,
-#                                barmode=rb_value,
-#                                color="Área Sanitaria")
+# Calculate 1 and 2 weeks running mean grouped by Área Sanitaria
+df_totais_extended['Media 7 días'] = df_totais_extended.groupby('Área Sanitaria')['Casos confirmados por PCR nas últimas 24 horas'].rolling(window=7).mean().reset_index(0,drop=True)
+df_totais_extended['Media 14 días'] = df_totais_extended.groupby('Área Sanitaria')['Casos confirmados por PCR nas últimas 24 horas'].rolling(14).mean().reset_index(0, drop=True)
 
 e_date = max(df_totais['Data'])
 s_date = e_date - datetime.timedelta(6)
@@ -227,13 +202,16 @@ app.layout = html.Div(children=[
             className='ten columns'),
     ]),
 
-    html.Div(dcc.Graph(id='main-graph'), className='twelve columns')
-    #html.Div(dcc.Graph(id='mean-graph'), className='twelve columns')
+    html.Div(dcc.Graph(id='main-graph'), className='twelve columns'),
+    html.Div(dcc.Graph(id='mean7-graph'), className='twelve columns'),
+    html.Div(dcc.Graph(id='mean14-graph'), className='twelve columns')
 ])
 
 
 @app.callback(
-    [Output('main-graph', 'figure')],
+    [Output('main-graph', 'figure'),
+     Output('mean7-graph', 'figure'),
+     Output('mean14-graph', 'figure')],
     [Input('dropdown-parameter', 'value'),
      Input('date-picker', 'start_date'), Input('date-picker', 'end_date'),
      Input('radio-buttons', 'value'),
@@ -276,7 +254,41 @@ def update_figure(dd_parameter, start_date, end_date, rb_value, dd_area):
     else:
         fig_to_update = {}
 
-    return fig_to_update,
+    if dd_parameter == 'Casos confirmados por PCR nas últimas 24 horas':
+        fig_mean7_to_update = px.bar(df_to_figure,
+                               x='Data',
+                               y='Media 7 días',
+                               text='Media 7 días',
+                               title='Media Casos confirmados por PCR (7 días)',
+                               barmode=rb_value,
+                               color="Área Sanitaria")
+        fig_mean7_to_update.update_xaxes(
+            dtick=86400000.0,
+            tickformat="%d %b",
+            ticklabelmode="instant",
+            title_text='Data'
+        )
+        fig_mean7_to_update.update_traces(texttemplate='%{text:.2f}')
+        fig_mean7_to_update.update_layout(title_x=0.5, yaxis={'title': ''})
+
+        fig_mean14_to_update = px.bar(df_to_figure,
+                                     x='Data',
+                                     y='Media 14 días',
+                                     text='Media 14 días',
+                                     title='Media Casos confirmados por PCR (14 días)',
+                                     barmode=rb_value,
+                                     color="Área Sanitaria")
+        fig_mean14_to_update.update_xaxes(
+            dtick=86400000.0,
+            tickformat="%d %b",
+            ticklabelmode="instant",
+            title_text='Data'
+        )
+        fig_mean14_to_update.update_traces(texttemplate='%{text:.2f}')
+        fig_mean14_to_update.update_layout(title_x=0.5, yaxis={'title': ''})
+    else:
+        fig_mean7_to_update = {}
+    return fig_to_update, fig_mean7_to_update, fig_mean14_to_update
 
 
 if __name__ == '__main__':
