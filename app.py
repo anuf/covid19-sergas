@@ -87,16 +87,45 @@ df_totais_extended = pd.concat([
     df_totais, df_totais[
         ['Casos confirmados por PCR nas últimas 24 horas',
          'Falecidos',
+         'Curados',
          'Probas PCR realizadas']
     ].diff(periods=8).rename({
         'Casos confirmados por PCR nas últimas 24 horas': 'Diff Casos confirmados por PCR nas últimas 24 horas',
         'Falecidos': 'Diff Falecidos',
+        'Curados': 'Diff Curados',
         'Probas PCR realizadas': 'Diff Probas PCR realizadas'
     },
         axis=1)],
     axis=1)
 
-df_mean = df_totais_extended.groupby('Área Sanitaria')['Casos confirmados por PCR nas últimas 24 horas'].rolling(window=7).mean()
+
+# mean_col_ = df_totais_extended.groupby('Área Sanitaria')['Casos confirmados por PCR nas últimas 24 horas'].rolling(window=7).mean()
+# cols = ['date','name','id','dept','sale1','sale2','sale3','total_sale']
+# data = [
+# ['1/1/17', 'John', 50, 'Sales', 50.0, 60.0, 70.0, 180.0],
+# ['1/1/17', 'Mike', 21, 'Engg', 43.0, 55.0, 2.0, 100.0],
+# ['1/1/17', 'Jane', 99, 'Tech', 90.0, 80.0, 70.0, 240.0],
+# ['1/2/17', 'John', 50, 'Sales', 60.0, 70.0, 80.0, 210.0],
+# ['1/2/17', 'Mike', 21, 'Engg', 53.0, 65.0, 12.0, 130.0],
+# ['1/2/17', 'Jane', 99, 'Tech', 100.0, 90.0, 80.0, 270.0],
+# ['1/3/17', 'John', 50, 'Sales', 40.0, 50.0, 60.0, 150.0],
+# ['1/3/17', 'Mike', 21, 'Engg', 53.0, 55.0, 12.0, 120.0],
+# ['1/3/17', 'Jane', 99, 'Tech', 80.0, 70.0, 60.0, 210.0]
+# ]
+# df = pd.DataFrame(data, columns=cols)
+# mean_col = df.groupby(['name', 'id', 'dept'])['total_sale'].mean() # don't reset the index!
+# print(mean_col.index)
+# print(mean_col_.index)
+#print(df_totais_extended.head(3))
+
+#sys.exit(1)
+# fig_mean = px.bar(df_mean,
+#                                x='Data',
+#                                y=dd_parameter,
+#                                text=dd_parameter,
+#                                title=dd_parameter,
+#                                barmode=rb_value,
+#                                color="Área Sanitaria")
 
 e_date = max(df_totais['Data'])
 s_date = e_date - datetime.timedelta(6)
@@ -131,6 +160,8 @@ app.layout = html.Div(children=[
                           'value': 'Diff Casos confirmados por PCR nas últimas 24 horas'},
                          {'label': 'Diferenza de probas PCR realizadas con respecto ao día anterior',
                           'value': 'Diff Probas PCR realizadas'},
+                         {'label': 'Diferenza de curados con respecto ao día anterior',
+                          'value': 'Diff Curados'},
                          {'label': 'Diferenza de falecidos con respecto ao día anterior',
                           'value': 'Diff Falecidos'}
                      ],
@@ -197,6 +228,7 @@ app.layout = html.Div(children=[
     ]),
 
     html.Div(dcc.Graph(id='main-graph'), className='twelve columns')
+    #html.Div(dcc.Graph(id='mean-graph'), className='twelve columns')
 ])
 
 
