@@ -19,6 +19,7 @@ external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
 app = dash.Dash(__name__,
                 title='Datos COVID19',
+                update_title='Cargando...',
                 external_stylesheets=external_stylesheets)
 app.config['suppress_callback_exceptions'] = True
 
@@ -107,11 +108,14 @@ df_totais_extended['Media 14 días'] = df_totais_extended.groupby('Área Sanitar
 e_date = max(df_totais['Data'])
 s_date = e_date - datetime.timedelta(6)
 ano = datetime.date.today().year
+copyleft = u"\U0001F12F"
 
 app.layout = html.Div(children=[
     html.Img(src=app.get_asset_url('iconfinder-coronavirus-microscope-virus-laboratory-64.png'),
              className='one columns'),
-    html.H1('Datos Coronavirus Sergas'),
+    html.H1('Datos Coronavirus Sergas',
+            className='eleven columns',
+            ),
     html.Div([
         html.P("Indicador:", className='two columns'),
         dcc.Dropdown(id='dropdown-parameter',
@@ -204,15 +208,19 @@ app.layout = html.Div(children=[
             labelStyle={'display': 'inline-block'},
             className='ten columns'),
     ]),
+    html.Hr(className='twelve columns'),
     html.Div(dcc.Graph(id='main-graph'), className='twelve columns'),
     html.Div(dcc.Graph(id='mean7-graph'), className='twelve columns'),
     html.Div(dcc.Graph(id='mean14-graph'), className='twelve columns'),
-    html.Div(children=[dcc.Markdown(# markdown
-                   f"{ano} [anuf](https://github.com/anuf)  Todos os dereitos garantidos.")],
-        style={'textAlign'# : 'center',
-               'background': 'black',
-               'textColor': 'white'},
-        className='twelve columns'
+    html.Div([html.I(className='far fa-copyright fa-rotate-180'),
+              f" {ano} ", html.A("anuf",
+                                 href="https://github.com/anuf",
+                                 target="_blank"),
+              " Todos os dereitos garantidos."],
+             style={'textAlign': 'center',
+                    'background': 'black',
+                    'color': 'white'},
+             className='twelve columns'
     )
 ])
 
