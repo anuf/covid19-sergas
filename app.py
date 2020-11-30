@@ -212,7 +212,9 @@ app.layout = html.Div(children=[
     html.Div(dcc.Graph(id='main-graph'), className='twelve columns'),
     html.Div(dcc.Graph(id='mean7-graph'), className='twelve columns'),
     html.Div(dcc.Graph(id='mean14-graph'), className='twelve columns'),
-    html.Div([html.I(className='far fa-copyright fa-rotate-180'),
+    html.Div([html.I(className='fab fa-creative-commons'),html.I(className='fab fa-creative-commons-by'),
+
+              html.I(className='far fa-copyright fa-rotate-180'),
               f" {ano} ", html.A("anuf",
                                  href="https://github.com/anuf",
                                  target="_blank"),
