@@ -41,14 +41,20 @@ for a_source in j['DATA_SOURCE']['FILES']:
 # print(df_xenero)
 
 df_totais = pd.DataFrame()
-yesterday = datetime.date.today()-datetime.timedelta(1)
+today = datetime.date.today()
+tomorrow = today+datetime.timedelta(1)
+yesterday = today-datetime.timedelta(1)
 
-for day in pd.date_range(start='2020-10-07', end=yesterday):
+for day in pd.date_range(start='2020-10-07', end=today):
     totais_url = f"https://coronavirus.sergas.gal/infodatos/{str(day).split()[0]}_COVID19_Web_CifrasTotais.csv"
     #print(totais_url)
-    s_totais = requests.get(totais_url).content
-    df_diario = pd.read_csv(io.StringIO(s_totais.decode('utf-8')), thousands='.', decimal=',')
-    df_totais = pd.concat([df_totais, df_diario], ignore_index=True)
+    response = requests.get(totais_url)
+    if response.status_code == requests.codes.ok:  # i.e status = 200
+        content = response.content
+        df_diario = pd.read_csv(io.StringIO(content.decode('utf-8')), thousands='.', decimal=',')
+        df_totais = pd.concat([df_totais, df_diario], ignore_index=True)
+    else:
+        print(f'Content for {day} not available. Status code: {response.status_code}')
 
 df_totais[['Casos_Totais',
            'Casos_Confirmados_PCR_Ultimas24h',
@@ -212,8 +218,8 @@ app.layout = html.Div(children=[
     html.Div(dcc.Graph(id='main-graph'), className='twelve columns'),
     html.Div(dcc.Graph(id='mean7-graph'), className='twelve columns'),
     html.Div(dcc.Graph(id='mean14-graph'), className='twelve columns'),
-    html.Div([html.I(className='fab fa-creative-commons'),html.I(className='fab fa-creative-commons-by'),
-
+    html.Div([html.I(className='fab fa-creative-commons'),
+              html.I(className='fab fa-creative-commons-by'),
               html.I(className='far fa-copyright fa-rotate-180'),
               f" {ano} ", html.A("anuf",
                                  href="https://github.com/anuf",
