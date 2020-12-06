@@ -223,7 +223,7 @@ app.layout = html.Div([
     html.Div(dcc.Graph(id='mean7-graph'), className='twelve columns'),
     html.Div(dcc.Graph(id='mean14-graph'), className='twelve columns'),
     html.Div([html.I(className='fab fa-creative-commons'),
-              # html.I(className='fab fa-creative-commons-by'),
+              html.I(className='fab fa-creative-commons-by'),
               html.I(className='far fa-copyright fa-flip-horizontal'),
               f" {footer_year} ", html.A("anuf",
                                          href="https://github.com/anuf",
