@@ -42,7 +42,7 @@ for a_source in json_content['DATA_SOURCE']['FILES']:
 # print(df_xenero)
 
 # Main dataframe to join daily data
-df_totais = pd.DataFrame()
+main_df = pd.DataFrame()
 
 today = datetime.date.today()
 tomorrow = today+datetime.timedelta(1)
@@ -52,52 +52,52 @@ for day in pd.date_range(start='2020-10-07', end=today):
     daily_url = f"https://coronavirus.sergas.gal/infodatos/{str(day).split()[0]}_COVID19_Web_CifrasTotais.csv"
     response = requests.get(daily_url)
     if response.status_code == requests.codes.ok:  # i.e status = 200
-        df_diario = pd.read_csv(io.StringIO(response.content.decode('utf-8')), thousands='.', decimal=',')
-        df_totais = pd.concat([df_totais, df_diario], ignore_index=True)
+        daily_df = pd.read_csv(io.StringIO(response.content.decode('utf-8')), thousands='.', decimal=',')
+        main_df = pd.concat([main_df, daily_df], ignore_index=True)
     else:
         print(f'Content for {day} not available. Status code: {response.status_code}')
 
 # Type conversion
-df_totais[['Casos_Totais',
-           'Casos_Confirmados_PCR_Ultimas24h',
-           'Pacientes_Sin_Alta',
-           'Pacientes_Con_Alta',
-           'Camas_Ocupadas_HOS',
-           'Camas_Ocupadas_UCI',
-           'Probas_Realizadas_PCR',
-           'Probas_Realizadas_Non_PCR',
-           'Exitus']] = \
-    df_totais[['Casos_Totais',
-               'Casos_Confirmados_PCR_Ultimas24h',
-               'Pacientes_Sin_Alta',
-               'Pacientes_Con_Alta',
-               'Camas_Ocupadas_HOS',
-               'Camas_Ocupadas_UCI',
-               'Probas_Realizadas_PCR',
-               'Probas_Realizadas_Non_PCR',
-               'Exitus']].apply(pd.to_numeric)
-df_totais[['Fecha']] = df_totais[['Fecha']].apply(pd.to_datetime)
+main_df[['Casos_Totais',
+         'Casos_Confirmados_PCR_Ultimas24h',
+         'Pacientes_Sin_Alta',
+         'Pacientes_Con_Alta',
+         'Camas_Ocupadas_HOS',
+         'Camas_Ocupadas_UCI',
+         'Probas_Realizadas_PCR',
+         'Probas_Realizadas_Non_PCR',
+         'Exitus']] = \
+    main_df[['Casos_Totais',
+             'Casos_Confirmados_PCR_Ultimas24h',
+             'Pacientes_Sin_Alta',
+             'Pacientes_Con_Alta',
+             'Camas_Ocupadas_HOS',
+             'Camas_Ocupadas_UCI',
+             'Probas_Realizadas_PCR',
+             'Probas_Realizadas_Non_PCR',
+             'Exitus']].apply(pd.to_numeric)
+main_df[['Fecha']] = main_df[['Fecha']].apply(pd.to_datetime)
 
 # Change column names for nicer representation
-df_totais.set_axis(['Fecha',
-                    'Área Sanitaria',
-                    'Contaxiados',
-                    'Casos confirmados por PCR nas últimas 24 horas',
-                    'Pacientes con infección activa',
-                    'Curados',
-                    'Hospitalizados hoxe',
-                    'Coidados intensivos hoxe',
-                    'Probas PCR realizadas',
-                    'Probas serolóxicas realizadas',
-                    'Falecidos'],
-                   axis=1, inplace=True)
+main_df.set_axis(['Fecha',
+                  'Área Sanitaria',
+                  'Contaxiados',
+                  'Casos confirmados por PCR nas últimas 24 horas',
+                  'Pacientes con infección activa',
+                  'Curados',
+                  'Hospitalizados hoxe',
+                  'Coidados intensivos hoxe',
+                  'Probas PCR realizadas',
+                  'Probas serolóxicas realizadas',
+                  'Falecidos'],
+                 axis=1, inplace=True)
 
 # Create date column
-df_totais['Data'] = pd.to_datetime(df_totais['Fecha']).dt.date
+main_df['Data'] = pd.to_datetime(main_df['Fecha']).dt.date
 
 # Extend Dataframe with additional calculations
-df_totais_extended = pd.concat([
-    df_totais, df_totais[
+main_df_extended = pd.concat([
+    main_df, main_df[
         ['Casos confirmados por PCR nas últimas 24 horas',
          'Falecidos',
          'Curados',
@@ -112,12 +112,12 @@ df_totais_extended = pd.concat([
     axis=1)
 
 # Calculate 1 and 2 weeks running mean grouped by 'Área Sanitaria'
-df_totais_extended['Media 7 días'] = \
-    df_totais_extended.groupby('Área Sanitaria')['Casos confirmados por PCR nas últimas 24 horas'].rolling(window=7).mean().reset_index(0, drop=True)
-df_totais_extended['Media 14 días'] = \
-    df_totais_extended.groupby('Área Sanitaria')['Casos confirmados por PCR nas últimas 24 horas'].rolling(14).mean().reset_index(0, drop=True)
+main_df_extended['Media 7 días'] = \
+    main_df_extended.groupby('Área Sanitaria')['Casos confirmados por PCR nas últimas 24 horas'].rolling(window=7).mean().reset_index(0, drop=True)
+main_df_extended['Media 14 días'] = \
+    main_df_extended.groupby('Área Sanitaria')['Casos confirmados por PCR nas últimas 24 horas'].rolling(14).mean().reset_index(0, drop=True)
 
-e_date = max(df_totais['Data'])
+e_date = max(main_df['Data'])
 s_date = e_date - datetime.timedelta(6)
 today_year = datetime.date.today().year
 footer_year = f'2020 - {today_year}' if today_year != 2020 else '2020'
@@ -368,7 +368,7 @@ def update_figure(dd_parameter, start_date, end_date, rb_value, dd_area):
         start_date = datetime.datetime.strptime(start_date, '%Y-%m-%d').date()
         end_date = datetime.datetime.strptime(end_date, '%Y-%m-%d').date()  # datetime.date().fromisoformat(start_date)
 
-        df_to_figure = df_totais_extended[df_totais_extended.Data.between(start_date, end_date)]
+        df_to_figure = main_df_extended[main_df_extended.Data.between(start_date, end_date)]
 
         df_to_figure = df_to_figure[df_to_figure['Área Sanitaria'].isin(dd_area)]
 
