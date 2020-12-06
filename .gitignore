@@ -3,3 +3,5 @@ venv
 .DS_Store
 .env
 .idea
+credentials.json
+client_secret.json
