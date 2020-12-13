@@ -1,3 +1,4 @@
+
 import pandas as pd
 import requests
 import io
@@ -6,6 +7,7 @@ import json
 import plotly.express as px
 
 import dash
+import dash_table
 import dash_core_components as dcc
 import dash_html_components as html
 
@@ -47,6 +49,7 @@ main_df = pd.DataFrame()
 today = datetime.date.today()
 tomorrow = today+datetime.timedelta(1)
 yesterday = today-datetime.timedelta(1)
+before_yesterday = today-datetime.timedelta(2)
 
 for day in pd.date_range(start='2020-10-07', end=today):
     daily_url = f"https://coronavirus.sergas.gal/infodatos/{str(day).split()[0]}_COVID19_Web_CifrasTotais.csv"
@@ -101,11 +104,13 @@ main_df_extended = pd.concat([
         ['Casos confirmados por PCR nas últimas 24 horas',
          'Falecidos',
          'Curados',
+         'Contaxiados',
          'Probas PCR realizadas']
     ].diff(periods=8).rename({
         'Casos confirmados por PCR nas últimas 24 horas': 'Diff Casos confirmados por PCR nas últimas 24 horas',
         'Falecidos': 'Diff Falecidos',
         'Curados': 'Diff Curados',
+        'Contaxiados': 'Diff Contaxiados',
         'Probas PCR realizadas': 'Diff Probas PCR realizadas'
     },
         axis=1)],
@@ -122,6 +127,35 @@ s_date = e_date - datetime.timedelta(6)
 today_year = datetime.date.today().year
 footer_year = f'2020 - {today_year}' if today_year != 2020 else '2020'
 
+table_df = main_df[['Data', 'Área Sanitaria', 'Contaxiados',
+       'Casos confirmados por PCR nas últimas 24 horas',
+       'Pacientes con infección activa', 'Curados', 'Hospitalizados hoxe',
+       'Coidados intensivos hoxe', 'Probas PCR realizadas',
+       'Probas serolóxicas realizadas', 'Falecidos']]
+print(table_df.columns)
+table_df_transposed = table_df[table_df['Data'] >= before_yesterday]
+print(table_df_transposed.T.head(2))
+
+tab_content_table = html.Div([
+    dash_table.DataTable(
+        id='taboa',
+        columns=[{"name": i, "id": i} for i in table_df.columns],
+        data=table_df[table_df['Data'] >= before_yesterday].to_dict('records'),
+        sort_action='native',
+        filter_action='native'
+    )
+])
+tab_content_table2 = html.Div([
+    dash_table.DataTable(
+        id='taboa',
+        columns=[{"name": i, "id": i} for i in table_df.columns],
+        data=table_df[table_df['Data'] >= before_yesterday].to_dict('records'),
+        sort_action='native',
+        filter_action='native'
+    )
+])
+
+# The layout
 app.layout = html.Div([
     html.Div([
         html.Img(src=app.get_asset_url('iconfinder-coronavirus-microscope-virus-laboratory-64.png')),
@@ -155,6 +189,8 @@ app.layout = html.Div([
                               'value': 'Diff Casos confirmados por PCR nas últimas 24 horas'},
                              {'label': 'Diferenza de probas PCR realizadas con respecto ao día anterior',
                               'value': 'Diff Probas PCR realizadas'},
+                             {'label': 'Diferenza de Contaxiados con respecto ao día anterior',
+                              'value': 'Diff Contaxiados'},
                              {'label': 'Diferenza de curados con respecto ao día anterior',
                               'value': 'Diff Curados'},
                              {'label': 'Diferenza de falecidos con respecto ao día anterior',
@@ -222,6 +258,7 @@ app.layout = html.Div([
     html.Div(dcc.Graph(id='main-graph'), className='twelve columns'),
     html.Div(dcc.Graph(id='mean7-graph'), className='twelve columns'),
     html.Div(dcc.Graph(id='mean14-graph'), className='twelve columns'),
+    # tab_content_table,
     html.Div([html.I(className='fab fa-creative-commons'),
               html.I(className='fab fa-creative-commons-by'),
               html.I(className='far fa-copyright fa-flip-horizontal'),
