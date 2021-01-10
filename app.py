@@ -116,6 +116,10 @@ main_df_extended = pd.concat([
         axis=1)],
     axis=1)
 
+#
+main_df_extended['Suma_Hospitalizados_UCI'] = main_df_extended['Hospitalizados hoxe'] + \
+                                              main_df_extended['Coidados intensivos hoxe']
+
 # Calculate 1 and 2 weeks running mean grouped by 'Área Sanitaria'
 main_df_extended['Media 7 días'] = \
     main_df_extended.groupby('Área Sanitaria')['Casos confirmados por PCR nas últimas 24 horas'].rolling(window=7).mean().reset_index(0, drop=True)
@@ -132,15 +136,23 @@ table_df = main_df[['Data', 'Área Sanitaria', 'Contaxiados',
        'Pacientes con infección activa', 'Curados', 'Hospitalizados hoxe',
        'Coidados intensivos hoxe', 'Probas PCR realizadas',
        'Probas serolóxicas realizadas', 'Falecidos']]
-print(table_df.columns)
+
 table_df_transposed = table_df[table_df['Data'] >= before_yesterday]
-print(table_df_transposed.T.head(2))
+print(table_df_transposed.shape)
+table_df_transposed.set_index(['Data', 'Área Sanitaria'], inplace=True)
+print(table_df_transposed.T)
+#print(table_df_transposed.columns)
+#print(table_df_transposed.index)
+#table_df_transposed.set_index('Data', inplace=True)
+#print(table_df_transposed.index.names)
+#import sys
+#sys.exit(1)
 
 tab_content_table = html.Div([
     dash_table.DataTable(
         id='taboa',
-        columns=[{"name": i, "id": i} for i in table_df.columns],
-        data=table_df[table_df['Data'] >= before_yesterday].to_dict('records'),
+        columns=[{"name": i, "id": i} for i in table_df_transposed.T.columns.names],
+        data=table_df_transposed.to_dict('records'),
         sort_action='native',
         filter_action='native'
     )
@@ -194,7 +206,9 @@ app.layout = html.Div([
                              {'label': 'Diferenza de curados con respecto ao día anterior',
                               'value': 'Diff Curados'},
                              {'label': 'Diferenza de falecidos con respecto ao día anterior',
-                              'value': 'Diff Falecidos'}
+                              'value': 'Diff Falecidos'},
+                             {'label': 'Suma de hospitalizados e UCI',
+                              'value': 'Suma_Hospitalizados_UCI'}
                          ],
                          value='Casos confirmados por PCR nas últimas 24 horas',
                          clearable=False
