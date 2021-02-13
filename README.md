@@ -9,4 +9,5 @@ A simple bar representation using plotly dash to see historical data provider by
 
 Heroku deployment: [http://covid19-sergas.herokuapp.com/](http://covid19-sergas.herokuapp.com/)
 
-
+###
+Gz 2020-2021
