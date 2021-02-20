@@ -1,3 +1,4 @@
+import time
 
 import pandas as pd
 import requests
@@ -44,21 +45,30 @@ for a_source in json_content['DATA_SOURCE']['FILES']:
 # print(df_xenero)
 
 # Main dataframe to join daily data
-main_df = pd.DataFrame()
+main_df_ = pd.DataFrame()
 
 today = datetime.date.today()
 tomorrow = today+datetime.timedelta(1)
 yesterday = today-datetime.timedelta(1)
 before_yesterday = today-datetime.timedelta(2)
 
-for day in pd.date_range(start='2020-10-07', end=today):
-    daily_url = f"https://coronavirus.sergas.gal/infodatos/{str(day).split()[0]}_COVID19_Web_CifrasTotais.csv"
-    response = requests.get(daily_url)
-    if response.status_code == requests.codes.ok:  # i.e status = 200
-        daily_df = pd.read_csv(io.StringIO(response.content.decode('utf-8')), thousands='.', decimal=',')
-        main_df = pd.concat([main_df, daily_df], ignore_index=True)
-    else:
-        print(f'Content for {day} not available. Status code: {response.status_code}')
+print("PASA consultas")
+# for day in pd.date_range(start='2020-10-07', end=today):
+#     #print(str(day).split()[0])
+#     #daily_url=""
+#     daily_url = f"https://coronavirus.sergas.gal/infodatos/{str(day).split()[0]}_COVID19_Web_CifrasTotais.csv"
+#     response = requests.get(daily_url)
+#     if response.status_code == requests.codes.ok:  # i.e status = 200
+#         daily_df = pd.read_csv(io.StringIO(response.content.decode('utf-8')), thousands='.', decimal=',')
+#         main_df_ = pd.concat([main_df_, daily_df], ignore_index=True)
+#     else:
+#         print(f'Content for {day} not available. Status code: {response.status_code}')
+#     #time.sleep()
+#
+# main_df_.to_csv('total_data.csv', index=False)
+
+main_df = pd.read_csv('total_data.csv')
+print(main_df.columns)
 
 # Type conversion
 main_df[['Casos_Totais',
