@@ -18,6 +18,13 @@ from dash.dependencies import Input, Output
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css',
                         'https://use.fontawesome.com/releases/v5.15.1/css/all.css']
 
+NEED_NEW_DATA = False
+
+today = datetime.date.today()
+tomorrow = today+datetime.timedelta(1)
+yesterday = today-datetime.timedelta(1)
+before_yesterday = today-datetime.timedelta(2)
+
 app = dash.Dash(__name__,
                 title='Datos COVID19',
                 update_title='Cargando...',
@@ -26,49 +33,36 @@ app.config['suppress_callback_exceptions'] = True
 
 server = app.server
 
-# Configuration url for data at Sergas
-config_url = 'https://coronavirus.sergas.gal/datos/libs/hot-config/hot-config.txt'
 
-response_content = requests.get(config_url).content
-json_content = json.loads(response_content)
+def get_new_data(end_date):
+    # Configuration url for data at Sergas
+    config_url = 'https://coronavirus.sergas.gal/datos/libs/hot-config/hot-config.txt'
 
-for a_source in json_content['DATA_SOURCE']['FILES']:
-    print(a_source['URL'])
+    response_content = requests.get(config_url).content
+    json_content = json.loads(response_content)
 
-# print(json_content['MAPS_DATAWRAPPER'])
+    for a_source in json_content['DATA_SOURCE']['FILES']:
+        print(a_source['URL'])
 
-# xenero_url = "https://coronavirus.sergas.gal/infodatos/2020-11-26_COVID19_Web_PorcentajeInfectadosPorGenero.csv"
-# s_xenero = requests.get(xenero_url).content
-#
-# df_xenero = pd.read_csv(io.StringIO(s_xenero.decode('utf-8')))
-# print(df_xenero.columns)
-# print(df_xenero)
+    # Main dataframe to join daily data
+    main_df_ = pd.DataFrame()
 
-# Main dataframe to join daily data
-main_df_ = pd.DataFrame()
+    for day in pd.date_range(start='2020-10-07', end=end_date):
+        daily_url = f"https://coronavirus.sergas.gal/infodatos/{str(day).split()[0]}_COVID19_Web_CifrasTotais.csv"
+        response = requests.get(daily_url)
+        if response.status_code == requests.codes.ok:  # i.e status = 200
+            daily_df = pd.read_csv(io.StringIO(response.content.decode('utf-8')), thousands='.', decimal=',')
+            main_df_ = pd.concat([main_df_, daily_df], ignore_index=True)
+        else:
+            print(f'Content for {day} not available. Status code: {response.status_code}')
 
-today = datetime.date.today()
-tomorrow = today+datetime.timedelta(1)
-yesterday = today-datetime.timedelta(1)
-before_yesterday = today-datetime.timedelta(2)
+    main_df_.to_csv('total_data.csv', index=False)
 
-print("PASA consultas")
-# for day in pd.date_range(start='2020-10-07', end=today):
-#     #print(str(day).split()[0])
-#     #daily_url=""
-#     daily_url = f"https://coronavirus.sergas.gal/infodatos/{str(day).split()[0]}_COVID19_Web_CifrasTotais.csv"
-#     response = requests.get(daily_url)
-#     if response.status_code == requests.codes.ok:  # i.e status = 200
-#         daily_df = pd.read_csv(io.StringIO(response.content.decode('utf-8')), thousands='.', decimal=',')
-#         main_df_ = pd.concat([main_df_, daily_df], ignore_index=True)
-#     else:
-#         print(f'Content for {day} not available. Status code: {response.status_code}')
-#     #time.sleep()
-#
-# main_df_.to_csv('total_data.csv', index=False)
+
+if NEED_NEW_DATA:
+    get_new_data(today)
 
 main_df = pd.read_csv('total_data.csv')
-print(main_df.columns)
 
 # Type conversion
 main_df[['Casos_Totais',
