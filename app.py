@@ -109,13 +109,15 @@ main_df_extended = pd.concat([
          'Falecidos',
          'Curados',
          'Contaxiados',
-         'Probas PCR realizadas']
+         'Probas PCR realizadas',
+         'Pacientes con infección activa']
     ].diff(periods=8).rename({
         'Casos confirmados por PCR nas últimas 24 horas': 'Diff Casos confirmados por PCR nas últimas 24 horas',
         'Falecidos': 'Diff Falecidos',
         'Curados': 'Diff Curados',
         'Contaxiados': 'Diff Contaxiados',
-        'Probas PCR realizadas': 'Diff Probas PCR realizadas'
+        'Probas PCR realizadas': 'Diff Probas PCR realizadas',
+        'Pacientes con infección activa': 'Diff Pacientes con infección activa'
     },
         axis=1)],
     axis=1)
@@ -124,6 +126,9 @@ main_df_extended = pd.concat([
 main_df_extended['Suma_Hospitalizados_UCI'] = main_df_extended['Hospitalizados hoxe'] + \
                                               main_df_extended['Coidados intensivos hoxe']
 
+main_df_extended['Novos positivos'] = main_df_extended['Diff Pacientes con infección activa'] + \
+                                      main_df_extended['Diff Curados'] + \
+                                      main_df_extended['Diff Falecidos']
 # Calculate 1 and 2 weeks running mean grouped by 'Área Sanitaria'
 main_df_extended['Media 7 días'] = \
     main_df_extended.groupby('Área Sanitaria')['Casos confirmados por PCR nas últimas 24 horas'].rolling(window=7).mean().reset_index(0, drop=True)
@@ -211,8 +216,12 @@ app.layout = html.Div([
                               'value': 'Diff Curados'},
                              {'label': 'Diferenza de falecidos con respecto ao día anterior',
                               'value': 'Diff Falecidos'},
+                             {'label': 'Diferenza de pacientes con infeción activa con respecto ao día anterior',
+                              'value': 'Diff Pacientes con infección activa'},
                              {'label': 'Suma de hospitalizados e UCI',
-                              'value': 'Suma_Hospitalizados_UCI'}
+                              'value': 'Suma_Hospitalizados_UCI'},
+                             {'label': 'Novos positivos',
+                              'value': 'Novos positivos'}
                          ],
                          value='Casos confirmados por PCR nas últimas 24 horas',
                          clearable=False
