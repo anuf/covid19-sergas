@@ -110,14 +110,16 @@ main_df_extended = pd.concat([
          'Curados',
          'Contaxiados',
          'Probas PCR realizadas',
-         'Pacientes con infección activa']
+         'Pacientes con infección activa',
+         'Probas serolóxicas realizadas']
     ].diff(periods=8).rename({
         'Casos confirmados por PCR nas últimas 24 horas': 'Diff Casos confirmados por PCR nas últimas 24 horas',
         'Falecidos': 'Diff Falecidos',
         'Curados': 'Diff Curados',
         'Contaxiados': 'Diff Contaxiados',
         'Probas PCR realizadas': 'Diff Probas PCR realizadas',
-        'Pacientes con infección activa': 'Diff Pacientes con infección activa'
+        'Pacientes con infección activa': 'Diff Pacientes con infección activa',
+        'Probas serolóxicas realizadas': 'Diff Probas serolóxicas realizadas'
     },
         axis=1)],
     axis=1)
@@ -210,6 +212,8 @@ app.layout = html.Div([
                               'value': 'Diff Casos confirmados por PCR nas últimas 24 horas'},
                              {'label': 'Diferenza de probas PCR realizadas con respecto ao día anterior',
                               'value': 'Diff Probas PCR realizadas'},
+                             {'label': 'Diferenza de probas serolóxicas realizadas con respecto ao día anterior',
+                              'value': 'Diff Probas serolóxicas realizadas'},
                              {'label': 'Diferenza de Contaxiados con respecto ao día anterior',
                               'value': 'Diff Contaxiados'},
                              {'label': 'Diferenza de curados con respecto ao día anterior',
