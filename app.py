@@ -131,11 +131,17 @@ main_df_extended['Suma_Hospitalizados_UCI'] = main_df_extended['Hospitalizados h
 main_df_extended['Novos positivos'] = main_df_extended['Diff Pacientes con infección activa'] + \
                                       main_df_extended['Diff Curados'] + \
                                       main_df_extended['Diff Falecidos']
+# ----------- Running means
 # Calculate 1 and 2 weeks running mean grouped by 'Área Sanitaria'
 main_df_extended['Media 7 días'] = \
     main_df_extended.groupby('Área Sanitaria')['Casos confirmados por PCR nas últimas 24 horas'].rolling(window=7).mean().reset_index(0, drop=True)
 main_df_extended['Media 14 días'] = \
     main_df_extended.groupby('Área Sanitaria')['Casos confirmados por PCR nas últimas 24 horas'].rolling(14).mean().reset_index(0, drop=True)
+
+main_df_extended['Media 7 días Novos positivos'] = \
+    main_df_extended.groupby('Área Sanitaria')['Novos positivos'].rolling(window=7).mean().reset_index(0, drop=True)
+main_df_extended['Media 14 días Novos positivos'] = \
+    main_df_extended.groupby('Área Sanitaria')['Novos positivos'].rolling(14).mean().reset_index(0, drop=True)
 
 e_date = max(main_df['Data'])
 s_date = e_date - datetime.timedelta(6)
@@ -490,6 +496,38 @@ def update_figure(dd_parameter, start_date, end_date, rb_value, dd_area):
                                       y='Media 14 días',
                                       text='Media 14 días',
                                       title='Media Casos confirmados por PCR (14 días)',
+                                      barmode=rb_value,
+                                      color="Área Sanitaria")
+        fig_mean14_to_update.update_xaxes(
+            dtick=86400000.0,
+            tickformat="%d %b",
+            ticklabelmode="instant",
+            title_text='Data'
+        )
+        fig_mean14_to_update.update_traces(texttemplate='%{text:.2f}')
+        fig_mean14_to_update.update_layout(title_x=0.5, yaxis={'title': ''})
+    elif dd_parameter == 'Novos positivos':
+        fig_mean7_to_update = px.bar(df_to_figure,
+                                     x='Data',
+                                     y='Media 7 días Novos positivos',
+                                     text='Media 7 días Novos positivos',
+                                     title='Media Novos Positivos (7 días)',
+                                     barmode=rb_value,
+                                     color="Área Sanitaria")
+        fig_mean7_to_update.update_xaxes(
+            dtick=86400000.0,
+            tickformat="%d %b",
+            ticklabelmode="instant",
+            title_text='Data'
+        )
+        fig_mean7_to_update.update_traces(texttemplate='%{text:.2f}')
+        fig_mean7_to_update.update_layout(title_x=0.5, yaxis={'title': ''})
+
+        fig_mean14_to_update = px.bar(df_to_figure,
+                                      x='Data',
+                                      y='Media 14 días Novos positivos',
+                                      text='Media 14 días Novos positivos',
+                                      title='Media Novos Positivos (14 días)',
                                       barmode=rb_value,
                                       color="Área Sanitaria")
         fig_mean14_to_update.update_xaxes(
