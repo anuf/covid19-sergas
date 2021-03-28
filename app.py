@@ -21,9 +21,9 @@ external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css',
 NEED_NEW_DATA = False
 
 today = datetime.date.today()
-tomorrow = today+datetime.timedelta(1)
-yesterday = today-datetime.timedelta(1)
-before_yesterday = today-datetime.timedelta(2)
+tomorrow = today + datetime.timedelta(1)
+yesterday = today - datetime.timedelta(1)
+before_yesterday = today - datetime.timedelta(2)
 
 app = dash.Dash(__name__,
                 title='Datos COVID19',
@@ -59,10 +59,29 @@ def get_new_data(end_date):
     main_df_.to_csv('total_data.csv', index=False)
 
 
+def get_activos_curados_falecidos(a_day):
+    yesterday = a_day - datetime.timedelta(1)
+    yesterday_str = yesterday.strftime('%Y-%m-%d')
+    activos_curados_falecidos_url = f"https://coronavirus.sergas.gal/infodatos/{yesterday_str}_COVID19_" \
+                                    f"Web_ActivosCuradosFallecidos.csv"
+    response = requests.get(activos_curados_falecidos_url)
+
+    if response.status_code == requests.codes.ok:  # i.e status = 200
+        activos_curados_falecidos_df = pd.read_csv(io.StringIO(response.content.decode('utf-8')), thousands='.',
+                                                   decimal=',')
+
+        activos_curados_falecidos_df.to_csv('activos_curados_falecidos.csv', index=False)
+        print('GOT activos_curados_falecidos')
+    else:
+        print('Unable to get activos_curados_falecidos')
+
+
 if NEED_NEW_DATA:
     get_new_data(today)
+    get_activos_curados_falecidos(today)
 
 main_df = pd.read_csv('total_data.csv')
+activos_curados_falecidos_df = pd.read_csv('activos_curados_falecidos.csv')
 
 # Type conversion
 main_df[['Casos_Totais',
@@ -85,6 +104,10 @@ main_df[['Casos_Totais',
              'Exitus']].apply(pd.to_numeric)
 main_df[['Fecha']] = main_df[['Fecha']].apply(pd.to_datetime)
 
+activos_curados_falecidos_df[['Pacientes_Sin_Alta', 'Pacientes_Con_Alta', 'Exitus']] = \
+    activos_curados_falecidos_df[['Pacientes_Sin_Alta', 'Pacientes_Con_Alta', 'Exitus']].apply(pd.to_numeric)
+activos_curados_falecidos_df[['Fecha']] = activos_curados_falecidos_df[['Fecha']].apply(pd.to_datetime)
+
 # Change column names for nicer representation
 main_df.set_axis(['Fecha',
                   'Área Sanitaria',
@@ -99,6 +122,12 @@ main_df.set_axis(['Fecha',
                   'Falecidos'],
                  axis=1, inplace=True)
 
+activos_curados_falecidos_df.set_axis(['Data',
+                                       'Área Sanitaria',
+                                       'Pacientes Sen Alta',
+                                       'Pacientes Con Alta',
+                                       'Exitus'],
+                                      axis=1, inplace=True)
 # Create date column
 main_df['Data'] = pd.to_datetime(main_df['Fecha']).dt.date
 
@@ -134,9 +163,11 @@ main_df_extended['Novos positivos'] = main_df_extended['Diff Pacientes con infec
 # ----------- Running means
 # Calculate 1 and 2 weeks running mean grouped by 'Área Sanitaria'
 main_df_extended['Media 7 días'] = \
-    main_df_extended.groupby('Área Sanitaria')['Casos confirmados por PCR nas últimas 24 horas'].rolling(window=7).mean().reset_index(0, drop=True)
+    main_df_extended.groupby('Área Sanitaria')['Casos confirmados por PCR nas últimas 24 horas'].rolling(
+        window=7).mean().reset_index(0, drop=True)
 main_df_extended['Media 14 días'] = \
-    main_df_extended.groupby('Área Sanitaria')['Casos confirmados por PCR nas últimas 24 horas'].rolling(14).mean().reset_index(0, drop=True)
+    main_df_extended.groupby('Área Sanitaria')['Casos confirmados por PCR nas últimas 24 horas'].rolling(
+        14).mean().reset_index(0, drop=True)
 
 main_df_extended['Media 7 días Novos positivos'] = \
     main_df_extended.groupby('Área Sanitaria')['Novos positivos'].rolling(window=7).mean().reset_index(0, drop=True)
@@ -149,21 +180,21 @@ today_year = datetime.date.today().year
 footer_year = f'2020 - {today_year}' if today_year != 2020 else '2020'
 
 table_df = main_df[['Data', 'Área Sanitaria', 'Contaxiados',
-       'Casos confirmados por PCR nas últimas 24 horas',
-       'Pacientes con infección activa', 'Curados', 'Hospitalizados hoxe',
-       'Coidados intensivos hoxe', 'Probas PCR realizadas',
-       'Probas serolóxicas realizadas', 'Falecidos']]
+                    'Casos confirmados por PCR nas últimas 24 horas',
+                    'Pacientes con infección activa', 'Curados', 'Hospitalizados hoxe',
+                    'Coidados intensivos hoxe', 'Probas PCR realizadas',
+                    'Probas serolóxicas realizadas', 'Falecidos']]
 
 table_df_transposed = table_df[table_df['Data'] >= before_yesterday]
 print(table_df_transposed.shape)
 table_df_transposed.set_index(['Data', 'Área Sanitaria'], inplace=True)
 print(table_df_transposed.T)
-#print(table_df_transposed.columns)
-#print(table_df_transposed.index)
-#table_df_transposed.set_index('Data', inplace=True)
-#print(table_df_transposed.index.names)
-#import sys
-#sys.exit(1)
+# print(table_df_transposed.columns)
+# print(table_df_transposed.index)
+# table_df_transposed.set_index('Data', inplace=True)
+# print(table_df_transposed.index.names)
+# import sys
+# sys.exit(1)
 
 tab_content_table = html.Div([
     dash_table.DataTable(
@@ -188,9 +219,9 @@ tab_content_table2 = html.Div([
 app.layout = html.Div([
     html.Div([
         html.Img(src=app.get_asset_url('iconfinder-coronavirus-microscope-virus-laboratory-64.png')),
-        html.H1('Datos Coronavirus Sergas', style={'display': 'inline-block'})],
-        style={'verticalAlign': 'middle'}
-    ),
+        html.H1('Datos Coronavirus Sergas', style={'display': 'inline-block'}),
+        html.H6(['Fonte ', html.A("sergas", href="https://coronavirus.sergas.es/datos/#/gl-ES/galicia"),
+                 ' / Elaboración propia'])], style={'verticalAlign': 'middle'}),
     html.Div([
         html.Div([
             html.Label("Indicador:"),
@@ -295,6 +326,7 @@ app.layout = html.Div([
     html.Div(dcc.Graph(id='main-graph'), className='twelve columns'),
     html.Div(dcc.Graph(id='mean7-graph'), className='twelve columns'),
     html.Div(dcc.Graph(id='mean14-graph'), className='twelve columns'),
+    html.Div(dcc.Graph(id='exitus-graph'), className='twelve columns'),
     # tab_content_table,
     html.Div([html.I(className='fab fa-creative-commons'),
               html.I(className='fab fa-creative-commons-by'),
@@ -309,6 +341,7 @@ app.layout = html.Div([
              className='twelve columns'
              )
 ])
+
 
 # app.layout = html.Div(children=[
 #     html.Img(src=app.get_asset_url('iconfinder-coronavirus-microscope-virus-laboratory-64.png'),
@@ -430,7 +463,8 @@ app.layout = html.Div([
 @app.callback(
     [Output('main-graph', 'figure'),
      Output('mean7-graph', 'figure'),
-     Output('mean14-graph', 'figure')],
+     Output('mean14-graph', 'figure'),
+     Output('exitus-graph', 'figure')],
     [Input('dropdown-parameter', 'value'),
      Input('date-picker', 'start_date'), Input('date-picker', 'end_date'),
      Input('radio-buttons', 'value'),
@@ -541,7 +575,41 @@ def update_figure(dd_parameter, start_date, end_date, rb_value, dd_area):
     else:
         fig_mean7_to_update = {}
         fig_mean14_to_update = {}
-    return fig_to_update, fig_mean7_to_update, fig_mean14_to_update
+
+    activos_curados_falecidos_extended = pd.concat([
+        activos_curados_falecidos_df, activos_curados_falecidos_df[
+            ['Exitus']
+        ].diff(periods=8).rename({
+            'Exitus': 'Falecidos Diarios'
+        },
+            axis=1)],
+        axis=1)
+
+    activos_curados_falecidos_extended['Media 7 días'] = \
+        activos_curados_falecidos_extended.groupby('Área Sanitaria')['Falecidos Diarios'].rolling(
+            window=7).mean().reset_index(0, drop=True)
+
+    activos_curados_falecidos_to_figure = activos_curados_falecidos_extended[
+        activos_curados_falecidos_extended['Área Sanitaria'].isin(dd_area)]
+    if dd_parameter == 'Falecidos':
+        fig_exitus_to_update = plot_exitus(activos_curados_falecidos_to_figure)
+    else:
+        fig_exitus_to_update = {}
+
+    return fig_to_update, fig_mean7_to_update, fig_mean14_to_update, fig_exitus_to_update
+
+
+def plot_exitus(df_to_figure):
+    fig_to_update = px.area(df_to_figure,
+                            x='Data',
+                            y='Falecidos Diarios',
+                            # text='Falecidos Diarios',
+                            title='Falecidos Diarios',
+                            line_group='Área Sanitaria',
+                            color="Área Sanitaria")
+
+    fig_to_update.update_layout(title_x=0.5, yaxis={'title': ''})
+    return fig_to_update
 
 
 if __name__ == '__main__':
