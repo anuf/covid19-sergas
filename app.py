@@ -308,7 +308,8 @@ app.layout = html.Div([
                 display_format='D-M-Y',
                 # className='ten columns',
                 first_day_of_week=1,
-                min_date_allowed='2020-10-07'
+                min_date_allowed='2020-10-07',
+                #max_date_allowed=str(today)
             ),
             html.Label("Disposición:"),
             dcc.RadioItems(
