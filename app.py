@@ -193,8 +193,8 @@ print(table_df_transposed.T)
 # print(table_df_transposed.index)
 # table_df_transposed.set_index('Data', inplace=True)
 # print(table_df_transposed.index.names)
-# import sys
-# sys.exit(1)
+max_data = max(table_df['Data'])
+max_data_str = f"{max_data.day}/{max_data.month}/{max_data.year}"
 
 tab_content_table = html.Div([
     dash_table.DataTable(
@@ -220,8 +220,9 @@ app.layout = html.Div([
     html.Div([
         html.Img(src=app.get_asset_url('iconfinder-coronavirus-microscope-virus-laboratory-64.png')),
         html.H1('Datos Coronavirus Sergas', style={'display': 'inline-block'}),
-        html.H6(['Fonte ', html.A("sergas", href="https://coronavirus.sergas.es/datos/#/gl-ES/galicia"),
-                 ' / Elaboración propia'])], style={'verticalAlign': 'middle'}),
+        html.H6([f'Últimos datos: {max_data_str}. Fonte ',
+                 html.A("sergas", href="https://coronavirus.sergas.es/datos/#/gl-ES/galicia"), '/ Elaboración propia'])
+    ], style={'verticalAlign': 'middle'}),
     html.Div([
         html.Div([
             html.Label("Indicador:"),
@@ -309,7 +310,7 @@ app.layout = html.Div([
                 # className='ten columns',
                 first_day_of_week=1,
                 min_date_allowed='2020-10-07',
-                #max_date_allowed=str(today)
+                #max_date_allowed=str(max_data)
             ),
             html.Label("Disposición:"),
             dcc.RadioItems(
