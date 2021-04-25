@@ -179,10 +179,11 @@ main_df_extended['Media 14 días Casos Activos'] = \
 
 main_df_extended['Incidencia 7 días Casos Activos'] = \
     main_df_extended.groupby('Área Sanitaria')['Pacientes con infección activa'].rolling(
-        window=7).mean().reset_index(0, drop=True)*100000/population_galicia_2020
+        window=7).mean().reset_index(0, drop=True)#*100000/population_galicia_2020
+
 main_df_extended['Incidencia 14 días Casos Activos'] = \
     main_df_extended.groupby('Área Sanitaria')['Pacientes con infección activa'].rolling(
-        14).mean().reset_index(0, drop=True)*100000/population_galicia_2020
+        14).mean().reset_index(0, drop=True)#*100000/population_galicia_2020
 
 main_df_extended['Media 7 días Novos positivos'] = \
     main_df_extended.groupby('Área Sanitaria')['Novos positivos'].rolling(window=7).mean().reset_index(0, drop=True)
@@ -612,8 +613,8 @@ def update_figure(dd_parameter, start_date, end_date, rb_value, dd_area):
 
         fig_mean14_to_update = px.bar(df_to_figure,
                                       x='Data',
-                                      y='Incidencia 7 días Casos Activos',
-                                      text='Incidencia 7 días Casos Activos',
+                                      y='Incidencia 14 días Casos Activos',
+                                      text='Incidencia 14 días Casos Activos',
                                       title='Inciencia Media Casos Activos (14 días) por 100000 habs',
                                       barmode=rb_value,
                                       color="Área Sanitaria")
