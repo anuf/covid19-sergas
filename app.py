@@ -179,11 +179,11 @@ main_df_extended['Media 14 días Casos Activos'] = \
 
 main_df_extended['Incidencia 7 días Casos Activos'] = \
     main_df_extended.groupby('Área Sanitaria')['Pacientes con infección activa'].rolling(
-        window=7).mean().reset_index(0, drop=True)#*100000/population_galicia_2020
+        window=7).mean().reset_index(0, drop=True)*100000/population_galicia_2020
 
 main_df_extended['Incidencia 14 días Casos Activos'] = \
     main_df_extended.groupby('Área Sanitaria')['Pacientes con infección activa'].rolling(
-        14).mean().reset_index(0, drop=True)#*100000/population_galicia_2020
+        14).mean().reset_index(0, drop=True)*100000/population_galicia_2020
 
 main_df_extended['Media 7 días Novos positivos'] = \
     main_df_extended.groupby('Área Sanitaria')['Novos positivos'].rolling(window=7).mean().reset_index(0, drop=True)
