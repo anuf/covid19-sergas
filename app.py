@@ -24,6 +24,7 @@ today = datetime.date.today()
 tomorrow = today + datetime.timedelta(1)
 yesterday = today - datetime.timedelta(1)
 before_yesterday = today - datetime.timedelta(2)
+population_galicia_2020 = 2701819
 
 app = dash.Dash(__name__,
                 title='Datos COVID19',
@@ -169,6 +170,20 @@ main_df_extended['Media 14 días'] = \
     main_df_extended.groupby('Área Sanitaria')['Casos confirmados por PCR nas últimas 24 horas'].rolling(
         14).mean().reset_index(0, drop=True)
 
+main_df_extended['Media 7 días Casos Activos'] = \
+    main_df_extended.groupby('Área Sanitaria')['Pacientes con infección activa'].rolling(
+        window=7).mean().reset_index(0, drop=True)
+main_df_extended['Media 14 días Casos Activos'] = \
+    main_df_extended.groupby('Área Sanitaria')['Pacientes con infección activa'].rolling(
+        14).mean().reset_index(0, drop=True)
+
+main_df_extended['Incidencia 7 días Casos Activos'] = \
+    main_df_extended.groupby('Área Sanitaria')['Pacientes con infección activa'].rolling(
+        window=7).mean().reset_index(0, drop=True)*100000/population_galicia_2020
+main_df_extended['Incidencia 14 días Casos Activos'] = \
+    main_df_extended.groupby('Área Sanitaria')['Pacientes con infección activa'].rolling(
+        14).mean().reset_index(0, drop=True)*100000/population_galicia_2020
+
 main_df_extended['Media 7 días Novos positivos'] = \
     main_df_extended.groupby('Área Sanitaria')['Novos positivos'].rolling(window=7).mean().reset_index(0, drop=True)
 main_df_extended['Media 14 días Novos positivos'] = \
@@ -194,6 +209,10 @@ print(table_df_transposed.T)
 # table_df_transposed.set_index('Data', inplace=True)
 # print(table_df_transposed.index.names)
 max_data = max(table_df['Data'])
+print(type(max_data))
+print(max_data)
+#import sys
+#sys.exit(1)
 max_data_str = f"{max_data.day}/{max_data.month}/{max_data.year}"
 
 tab_content_table = html.Div([
@@ -310,7 +329,7 @@ app.layout = html.Div([
                 # className='ten columns',
                 first_day_of_week=1,
                 min_date_allowed='2020-10-07',
-                #max_date_allowed=str(max_data)
+                max_date_allowed=str(max_data+datetime.timedelta(1))
             ),
             html.Label("Disposición:"),
             dcc.RadioItems(
@@ -564,6 +583,38 @@ def update_figure(dd_parameter, start_date, end_date, rb_value, dd_area):
                                       y='Media 14 días Novos positivos',
                                       text='Media 14 días Novos positivos',
                                       title='Media Novos Positivos (14 días)',
+                                      barmode=rb_value,
+                                      color="Área Sanitaria")
+        fig_mean14_to_update.update_xaxes(
+            dtick=86400000.0,
+            tickformat="%d %b",
+            ticklabelmode="instant",
+            title_text='Data'
+        )
+        fig_mean14_to_update.update_traces(texttemplate='%{text:.2f}')
+        fig_mean14_to_update.update_layout(title_x=0.5, yaxis={'title': ''})
+    elif dd_parameter == 'Pacientes con infección activa':
+        fig_mean7_to_update = px.bar(df_to_figure,
+                                     x='Data',
+                                     y='Incidencia 7 días Casos Activos',
+                                     text='Incidencia 7 días Casos Activos',
+                                     title='Inciencia Media Casos Activos (7 días) por 100000 habs',
+                                     barmode=rb_value,
+                                     color="Área Sanitaria")
+        fig_mean7_to_update.update_xaxes(
+            dtick=86400000.0,
+            tickformat="%d %b",
+            ticklabelmode="instant",
+            title_text='Data'
+        )
+        fig_mean7_to_update.update_traces(texttemplate='%{text:.2f}')
+        fig_mean7_to_update.update_layout(title_x=0.5, yaxis={'title': ''})
+
+        fig_mean14_to_update = px.bar(df_to_figure,
+                                      x='Data',
+                                      y='Incidencia 7 días Casos Activos',
+                                      text='Incidencia 7 días Casos Activos',
+                                      title='Inciencia Media Casos Activos (14 días) por 100000 habs',
                                       barmode=rb_value,
                                       color="Área Sanitaria")
         fig_mean14_to_update.update_xaxes(
